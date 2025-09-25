@@ -9,12 +9,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { UserPlus, Users, Share2, MessageSquare, FileText, Search, Eye, ExternalLink, Filter } from "lucide-react";
 import apiClient from "@/lib/api-client";
+import { ChatProvider } from "@/contexts/ChatContext";
+import ChatWidget from "@/components/chat/ChatWidget";
+import ChatButton from "@/components/chat/ChatButton";
 
 export default function StudentSharedNotes() {
   const [sharedNotes, setSharedNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("all");
+  const [chatOpen, setChatOpen] = useState(false);
+  const [selectedNoteForChat, setSelectedNoteForChat] = useState(null);
 
   useEffect(() => {
     loadSharedNotes();
@@ -149,9 +154,321 @@ export default function StudentSharedNotes() {
     return date.toLocaleDateString();
   };
 
+  const handleStartChat = (noteId) => {
+    setSelectedNoteForChat(noteId);
+    setChatOpen(true);
+  };
+
   return (
-    <DashboardLayout persona="student">
-      <div className="p-6 space-y-6">
+    <ChatProvider>
+      <DashboardLayout persona="student">
+        <div className="flex h-full bg-gray-50">
+          {/* Sidebar */}
+          <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+            {/* Sidebar Header */}
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Shared Notes</h2>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Share2 className="h-4 w-4 mr-1" />
+                  New
+                </Button>
+              </div>
+              
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search task, messages,employee etc."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-gray-50 border-gray-200 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">All Status</span>
+              </div>
+              <div className="space-y-1">
+                {subjects.map(subject => (
+                  <button
+                    key={subject}
+                    onClick={() => setSelectedSubject(subject)}
+                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                      selectedSubject === subject 
+                        ? 'bg-blue-50 text-blue-700 font-medium' 
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {subject === "all" ? "All Subjects" : subject.charAt(0).toUpperCase() + subject.slice(1).replace("-", " ")}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes List */}
+            <div className="flex-1 overflow-y-auto">
+              {loading ? (
+                <div className="space-y-2 p-4">
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} className="animate-pulse p-3 border-b border-gray-100">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-0">
+                  {filteredNotes.map((note, index) => (
+                    <div 
+                      key={note._id}
+                      className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                        index === 0 ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-10 w-10 mt-1">
+                          <AvatarFallback className="text-sm bg-blue-100 text-blue-700">
+                            {getInitials(note.userId.firstName, note.userId.lastName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-medium text-gray-900 truncate text-sm">
+                              {note.userId.firstName} {note.userId.lastName}
+                            </h3>
+                            <span className="text-xs text-gray-500 ml-2">
+                              {formatTimeAgo(note.updatedAt)}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium text-gray-800 mt-1 truncate">
+                            {note.title}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                            {note.content.substring(0, 80)}...
+                          </p>
+                          
+                          {/* Tags */}
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {note.tagIds.slice(0, 2).map(tag => (
+                              <Badge key={tag.name} variant="outline" className="text-xs px-1.5 py-0.5">
+                                {tag.emoji}
+                              </Badge>
+                            ))}
+                            {note.tagIds.length > 2 && (
+                              <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                                +{note.tagIds.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Status indicator */}
+                        {note.priority === 'high' && (
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col">
+            {/* Main Content Header */}
+            <div className="p-6 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback className="bg-blue-100 text-blue-700">
+                      {filteredNotes.length > 0 ? getInitials(filteredNotes[0].userId.firstName, filteredNotes[0].userId.lastName) : 'SN'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h1 className="text-xl font-semibold text-gray-900">
+                      {filteredNotes.length > 0 ? filteredNotes[0].title : 'Select a note to view'}
+                    </h1>
+                    <p className="text-sm text-gray-500">
+                      {filteredNotes.length > 0 ? `Applied ${formatTimeAgo(filteredNotes[0].updatedAt)}` : 'Choose from the sidebar'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm">
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    Chat
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content Body */}
+            <div className="flex-1 p-6 bg-white overflow-y-auto">
+              {filteredNotes.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Note Content */}
+                  <div className="prose max-w-none">
+                    <p className="text-gray-700 leading-relaxed">
+                      {filteredNotes[0].content}
+                    </p>
+                  </div>
+
+                  {/* Applied Jobs Section */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Applied Jobs</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-medium">
+                            S
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">Senior Product Designer</h4>
+                            <p className="text-sm text-gray-500">Full Time • Thorington • 6 days</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-sm text-gray-500">Status</div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-blue-700">Screening</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Details */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Details</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 text-gray-400">📧</div>
+                        <span className="text-sm text-gray-600">Email:</span>
+                        <span className="text-sm text-gray-900">{filteredNotes[0].userId.email}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 text-gray-400">📞</div>
+                        <span className="text-sm text-gray-600">Phone:</span>
+                        <span className="text-sm text-gray-900">(229) 555-0109</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 text-gray-400">📍</div>
+                        <span className="text-sm text-gray-600">Address:</span>
+                        <span className="text-sm text-gray-900">1901 Thornridge Cir, Shiloh, Hawaii 81063</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 text-gray-400">🔗</div>
+                        <span className="text-sm text-gray-600">Skype:</span>
+                        <span className="text-sm text-blue-600">royalparvej</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes Section */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes</h3>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 italic">Was something...</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-center">
+                  <div>
+                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-500 mb-2">No note selected</h3>
+                    <p className="text-gray-400">Select a note from the sidebar to view its details</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Sidebar - Contact Info */}
+          {filteredNotes.length > 0 && (
+            <div className="w-80 bg-white border-l border-gray-200 p-6">
+              <div className="text-center mb-6">
+                <Avatar className="h-20 w-20 mx-auto mb-4">
+                  <AvatarFallback className="text-lg bg-blue-100 text-blue-700">
+                    {getInitials(filteredNotes[0].userId.firstName, filteredNotes[0].userId.lastName)}
+                  </AvatarFallback>
+                </Avatar>
+                <h3 className="font-semibold text-gray-900">
+                  {filteredNotes[0].userId.firstName} {filteredNotes[0].userId.lastName}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">Applied a week ago</p>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="space-y-4 mb-6">
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-700">{filteredNotes[0].wordCount}</div>
+                    <div className="text-sm text-blue-600">Words</div>
+                  </div>
+                </div>
+                <div className="bg-green-50 rounded-lg p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-700">{filteredNotes[0].readingTime}</div>
+                    <div className="text-sm text-green-600">Min Read</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-900 mb-3">Tags</h4>
+                <div className="flex flex-wrap gap-2">
+                  {filteredNotes[0].tagIds.map(tag => (
+                    <Badge key={tag.name} variant="outline" className="text-xs">
+                      {tag.emoji} {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-2">
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={() => handleStartChat(filteredNotes[0]._id)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Send Now
+                </Button>
+                <Button variant="outline" className="w-full">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Full Note
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Chat Widget */}
+        <ChatWidget 
+          isOpen={chatOpen} 
+          onClose={() => setChatOpen(false)}
+          initialChatId={selectedNoteForChat}
+        />
+      </DashboardLayout>
+    </ChatProvider>
+  );
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -166,10 +483,13 @@ export default function StudentSharedNotes() {
               Discover and access notes shared by your classmates
             </p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Share2 className="h-4 w-4 mr-2" />
-            Share My Notes
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Share2 className="h-4 w-4 mr-2" />
+              Share My Notes
+            </Button>
+            <ChatButton className="ml-2" />
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -281,7 +601,11 @@ export default function StudentSharedNotes() {
                       <Eye className="h-3 w-3 mr-1" />
                       View
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleStartChat(note._id)}
+                    >
                       <MessageSquare className="h-3 w-3" />
                     </Button>
                     <Button size="sm" variant="outline">
@@ -294,19 +618,4 @@ export default function StudentSharedNotes() {
           </div>
         )}
 
-        {filteredNotes.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No shared notes found</h3>
-            <p className="text-muted-foreground">
-              {searchTerm || selectedSubject !== "all" 
-                ? "Try adjusting your search or filters" 
-                : "Be the first to share your notes with classmates!"
-              }
-            </p>
-          </div>
-        )}
-      </div>
-    </DashboardLayout>
-  );
 }

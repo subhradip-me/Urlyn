@@ -53,9 +53,21 @@ const FoldersPage = () => {
       const response = await apiClient.getStudentFolders();
       console.log('Full folders response:', response);
       
-      // Handle the new response structure
-      const foldersData = response.data || [];
-      console.log('Folders received:', foldersData.map(f => ({ name: f.name, id: f._id })));
+      // Handle the correct response structure - folders are in response.data.folders
+      let foldersData = [];
+      if (response.success && response.data) {
+        // Extract folders from the nested structure
+        foldersData = response.data.folders || response.data || [];
+      }
+      
+      // Ensure foldersData is always an array
+      if (!Array.isArray(foldersData)) {
+        console.warn('Folders data is not an array:', foldersData);
+        foldersData = [];
+      }
+      
+      console.log('Processed folders:', foldersData.length, 'folders found');
+      console.log('Folders received:', foldersData.map(f => ({ name: f?.name, id: f?._id })));
       setFolders(foldersData);
     } catch (error) {
       console.error('Error fetching folders:', error);
@@ -63,6 +75,8 @@ const FoldersPage = () => {
         router.push('/dashboard');
         return;
       }
+      // Set empty array on error to prevent further issues
+      setFolders([]);
     } finally {
       setLoading(false);
     }

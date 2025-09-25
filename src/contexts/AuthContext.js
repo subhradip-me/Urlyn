@@ -3,6 +3,30 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import apiClient from '@/lib/api-client';
 
+// Helper function to generate JWT token for development
+const generateDevToken = async (user) => {
+  try {
+    // Create JWT payload
+    const payload = {
+      id: user._id,
+      email: user.email,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+    };
+    
+    // For client-side, we'll create a mock JWT structure
+    // In production, this would be generated server-side
+    const header = btoa(JSON.stringify({ typ: 'JWT', alg: 'HS256' }));
+    const payloadEncoded = btoa(JSON.stringify(payload));
+    const signature = btoa('dev-signature'); // Mock signature for development
+    
+    return `${header}.${payloadEncoded}.${signature}`;
+  } catch (error) {
+    console.error('Error generating dev token:', error);
+    return 'dev-token-fallback';
+  }
+};
+
 // Initial state
 const initialState = {
   user: null,
@@ -129,9 +153,12 @@ export function AuthProvider({ children }) {
           }
         };
         
+        // Generate a proper JWT token for development
+        const mockToken = await generateDevToken(mockUser);
+        
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
-          payload: { user: mockUser, token: 'dev-token' },
+          payload: { user: mockUser, token: mockToken },
         });
         return;
       }

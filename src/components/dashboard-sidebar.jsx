@@ -525,8 +525,8 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
           className
         )}
       >
-        {/* Header */}
-        <div className="flex h-16 items-center justify-between px-4 border-b">
+        {/* Header - Fixed */}
+        <div className="flex h-16 items-center justify-between px-4 border-b bg-background z-10 shrink-0">
           {!isCollapsed && (
             <div className="flex items-center space-x-2">
               <div className={cn(
@@ -557,9 +557,9 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
           </Button>
         </div>
 
-        {/* Persona selector when expanded */}
+        {/* Persona selector when expanded - Fixed */}
         {!isCollapsed && (
-          <div className="p-4 relative" ref={dropdownRef}>
+          <div className="p-4 relative bg-background border-b z-10 shrink-0" ref={dropdownRef}>
             <div className="relative">
               <Button
                 variant="outline"
@@ -641,15 +641,17 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
           </div>
         )}
 
-        {/* Navigation */}
-        <ScrollArea className="flex-1 px-3">
-          <div className="space-y-1 py-2">
-            {config.menuItems.map(item => renderMenuItem(item))}
-          </div>
-        </ScrollArea>
+        {/* Navigation - Scrollable Content */}
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full px-3">
+            <div className="space-y-1 py-2">
+              {config.menuItems.map(item => renderMenuItem(item))}
+            </div>
+          </ScrollArea>
+        </div>
 
-        {/* Settings */}
-        <div className="border-t p-3">
+        {/* Settings - Fixed */}
+        <div className="border-t p-3 bg-background z-10 shrink-0">
           <div className="space-y-1">
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
@@ -672,8 +674,8 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
           </div>
         </div>
 
-        {/* User Profile */}
-        <div className="border-t p-4">
+        {/* User Profile - Fixed */}
+        <div className="border-t p-4 bg-background z-10 shrink-0">
           {!isCollapsed ? (
             <div className="flex items-center space-x-3">
               <Avatar className="h-8 w-8">

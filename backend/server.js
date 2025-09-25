@@ -5,9 +5,11 @@ import compression from 'compression';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import { createServer } from 'http';
 
 import connectDB from './config/database.js';
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
+import SocketManager from './services/socketManager.js';
 
 // Import routes
 import authRoutes from './routes/auth/authRoutes.js';
@@ -16,6 +18,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import studentRoutes from './routes/student/studentRoutes.js';
 import metadataRoutes from './routes/common/metadataRoutes.js';
 import aiTagsRoutes from './routes/common/aiTagsRoutes.js';
+import chatRoutes from './routes/chat/chatRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -25,6 +28,10 @@ connectDB();
 
 // Initialize express app
 const app = express();
+const server = createServer(app);
+
+// Initialize Socket.IO
+const socketManager = new SocketManager(server);
 
 // Trust proxy
 app.set('trust proxy', 1);
@@ -114,6 +121,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/metadata', metadataRoutes);
 app.use('/api/ai-tags', aiTagsRoutes);
+app.use('/api/chats', chatRoutes);
 
 // Persona-specific routes
 app.use('/api/student', studentRoutes);
@@ -181,7 +189,7 @@ const gracefulShutdown = (signal) => {
 const PORT = process.env.PORT || 5001;
 const HOST = process.env.HOST || '0.0.0.0';
 
-const server = app.listen(PORT, HOST, () => {
+server.listen(PORT, HOST, () => {
   const env = process.env.NODE_ENV || 'development';
   const isDev = env === 'development';
   
@@ -194,6 +202,7 @@ const server = app.listen(PORT, HOST, () => {
 🔗 API Base: http://localhost:${PORT}/api
 🎭 Multi-Persona Support: Enabled
 🔔 Cross-Persona Notifications: Active
+💬 Socket.IO Chat: Enabled
     `);
   } else {
     console.log(`Server started on ${HOST}:${PORT} in ${env} mode`);
