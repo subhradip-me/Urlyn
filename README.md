@@ -82,7 +82,7 @@ Urlyn 2.0 is a comprehensive platform that adapts to different user personas, pr
 
 ### 1. Clone Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/subhradip-me/Urlyn.git
 cd Urlyn
 ```
 
@@ -363,15 +363,12 @@ This project is licensed under the ISC License.
 
 ## 🎉 Ready for Production!
 
-✅ All debug code removed
+✅ All debug code removed  
 ✅ Production optimizations applied  
-✅ Clean, maintainable codebase
-✅ Comprehensive documentation
-✅ Multi-persona system fully functional
-✅ Real-time features operational
+✅ Clean, maintainable codebase  
+✅ Comprehensive documentation  
+✅ Multi-persona system fully functional  
+✅ Real-time features operational  
 ✅ Security measures implemented
 
 **Happy coding with Urlyn 2.0! 🚀**
-#   U r l y n 
- 
- 
