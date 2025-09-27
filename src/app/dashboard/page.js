@@ -110,7 +110,7 @@ const DashboardPage = () => {
   // Handle redirect to login when not authenticated
   useEffect(() => {
     if (!loading && !user) {
-      console.log('Dashboard: No user found, redirecting to login');
+      // No user found, redirecting to login
       router.push('/login');
     }
   }, [loading, user, router]);
@@ -146,11 +146,9 @@ const DashboardPage = () => {
 
   useEffect(() => {
     // Handle redirects in useEffect to avoid setState during render
-    console.log('Dashboard useEffect - user:', user, 'loading:', loading);
     
     // If not loading and no user, redirect to login
     if (!loading && !user) {
-      console.log('Dashboard: No user, redirecting to login');
       router.push('/login');
       return;
     }
@@ -160,7 +158,6 @@ const DashboardPage = () => {
     /*
     if (!loading && user && user.currentPersona && user.personas && user.personas.includes(user.currentPersona) && !hasRedirected) {
       setHasRedirected(true);
-      console.log('Redirecting to persona home:', user.currentPersona);
       router.push(`/${user.currentPersona}/home`);
     }
     */
@@ -195,7 +192,6 @@ const DashboardPage = () => {
   };
 
   if (loading) {
-    console.log('Dashboard: Still loading...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -207,7 +203,6 @@ const DashboardPage = () => {
   }
 
   if (!user) {
-    console.log('Dashboard: No user, showing loading while redirecting...');
     // Show loading state while redirect happens in useEffect
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -218,8 +213,6 @@ const DashboardPage = () => {
       </div>
     );
   }
-
-  console.log('Dashboard: User loaded', { user, loading });
 
   return (
     <div className="min-h-screen bg-gray-50">

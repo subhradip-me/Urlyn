@@ -253,19 +253,13 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
   const fetchUserFolders = async () => {
     try {
       const response = await apiClient.getStudentFolders();
-      console.log('Dashboard sidebar folders response:', response);
-      
-      // Handle the new response structure - response.data contains { folders, total, message }
       const folders = response.data?.folders || [];
       
-      // Ensure folders is an array before filtering
       if (!Array.isArray(folders)) {
-        console.warn('Folders is not an array:', folders);
         setUserFolders([]);
         return;
       }
       
-      // Filter out any invalid folder objects
       const validFolders = folders.filter(folder => 
         folder && 
         typeof folder === 'object' && 
@@ -274,11 +268,10 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
         typeof folder.name === 'string'
       );
       
-      console.log('Valid folders for sidebar:', validFolders);
       setUserFolders(validFolders);
     } catch (error) {
       console.error('Error fetching folders:', error);
-      setUserFolders([]); // Ensure we always have an array
+      setUserFolders([]);
     }
   };
 
@@ -295,17 +288,13 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
 
       if (response.success && response.data) {
         const newFolder = response.data;
-        console.log('Created folder:', newFolder);
         
-        // Validate the new folder object before adding it
         if (newFolder && newFolder._id && newFolder.name) {
           setUserFolders(prev => [newFolder, ...prev]);
           setNewFolderName("");
           setNewFolderDescription("");
           setShowCreateFolder(false);
         } else {
-          console.error('Invalid folder object received:', newFolder);
-          // Refresh the folders list to get the latest data
           fetchUserFolders();
           setNewFolderName("");
           setNewFolderDescription("");
@@ -361,14 +350,9 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
 
   const handlePersonaChange = async (newPersona) => {
     try {
-      console.log('Sidebar: Starting persona change to:', newPersona);
-      
-      // Switch persona in the backend first
       const result = await switchPersona(newPersona);
-      console.log('Sidebar: switchPersona result:', result);
       
       if (result.success) {
-        // Navigate to the new persona's default route
         let defaultRoute;
         switch (newPersona) {
           case 'professional':
@@ -387,19 +371,8 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
             setActiveItem('Home');
         }
         
-        console.log('Sidebar: Navigating to:', defaultRoute);
-        
-        // Navigate to the new persona route
         router.push(defaultRoute);
-        
-        // Don't call onPersonaChange here as it causes a race condition
-        // The DashboardLayout will automatically detect the route change and switch persona
-        // if (onPersonaChange) {
-        //   onPersonaChange(newPersona);
-        // }
-        
         setShowPersonaDropdown(false);
-        // Reset expanded items when switching personas
         setExpandedItems({});
       } else {
         console.error('Failed to switch persona:', result.error);
@@ -420,8 +393,7 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
       
       if (result.success) {
         // Show success message
-        console.log('Persona added successfully:', result.message);
-        // The AuthContext will automatically update the user state
+        // Persona added successfully
       } else {
         console.error('Failed to add persona:', result.error);
         alert('Failed to add persona: ' + result.error);
@@ -693,7 +665,7 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
             <Button
               variant="ghost"
               className="w-[calc(100%-1.5rem)] ml-6 justify-start gap-3 font-normal text-blue-600 hover:text-blue-700"
-              onClick={() => console.log(`Add new ${item.title.toLowerCase()}`)}
+              onClick={() => {/* Add new item functionality */}}
             >
               <Plus className="h-4 w-4 shrink-0" />
               <span className="truncate">

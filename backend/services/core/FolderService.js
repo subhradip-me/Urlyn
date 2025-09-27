@@ -9,21 +9,15 @@ class FolderService {
     try {
       const { includeItemCounts = false, parentFolderId = null } = options;
 
-      console.log('FolderService.getUserFolders called with userId:', userId, 'persona:', persona);
-
       const query = { 
         userId,
         persona,
         parentFolderId: parentFolderId || { $in: [null, undefined] }
       };
 
-      console.log('Folder query:', query);
-
       const folders = await Folder.find(query)
         .sort({ sortOrder: 1, name: 1 })
         .lean();
-
-      console.log('Found folders:', folders.length, folders.map(f => f.name));
 
       if (includeItemCounts) {
         // Get item counts for each folder using persona-aware core models
@@ -321,7 +315,6 @@ class FolderService {
       // First check if user already has folders for this persona
       const existingFolders = await Folder.find({ userId, persona });
       if (existingFolders.length > 0) {
-        console.log('User already has folders for this persona, skipping initialization');
         return existingFolders;
       }
 
@@ -369,7 +362,6 @@ class FolderService {
         } catch (error) {
           if (error.code === 11000) {
             // Duplicate key error, folder already exists
-            console.log(`Folder '${folderData.name}' already exists for persona ${persona}, skipping`);
             const existingFolder = await Folder.findOne({ userId, persona, name: folderData.name });
             if (existingFolder) {
               folders.push(existingFolder);

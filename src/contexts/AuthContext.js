@@ -113,8 +113,6 @@ function authReducer(state, action) {
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  console.log('AuthProvider state:', { loading: state.loading, isAuthenticated: state.isAuthenticated, hasUser: !!state.user });
-
   // Initialize auth on mount with faster timeout
   useEffect(() => {
     const initAndTimeout = async () => {
@@ -138,7 +136,6 @@ export function AuthProvider({ children }) {
     try {
       // Development mode - automatically authenticate with mock user
       if (process.env.NODE_ENV === 'development') {
-        console.log('Development mode - using mock user');
         const mockUser = {
           _id: '68d0e521d89923fb4cf80d54',
           firstName: 'Test',
@@ -167,8 +164,7 @@ export function AuthProvider({ children }) {
         return;
       }
       
-      const token = localStorage.getItem('authToken');
-      console.log('Auth initialization - token exists:', !!token);
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       
       if (token) {
         apiClient.setToken(token);
@@ -181,7 +177,6 @@ export function AuthProvider({ children }) {
         
         try {
           const user = await Promise.race([userPromise, userTimeout]);
-          console.log('Auth initialization - user:', user);
           dispatch({
             type: AUTH_ACTIONS.LOGIN_SUCCESS,
             payload: { user, token },
@@ -194,7 +189,6 @@ export function AuthProvider({ children }) {
           dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
         }
       } else {
-        console.log('No token found, setting loading to false');
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
       }
     } catch (error) {

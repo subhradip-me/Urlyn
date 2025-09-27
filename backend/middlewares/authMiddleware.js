@@ -2,13 +2,8 @@ import jwt from 'jsonwebtoken';
 import User from '../models/common/User.js';
 
 const protect = async (req, res, next) => {
-  console.log('🔐 Auth middleware called:', req.method, req.path);
-  console.log('🌍 NODE_ENV:', process.env.NODE_ENV);
-  console.log('🛡️ BYPASS_AUTH:', process.env.BYPASS_AUTH);
-  
   // Development bypass for testing
   if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
-    console.log('🚧 Using development bypass');
     // Find a real user from the database
     let user = await User.findOne();
     
@@ -22,11 +17,9 @@ const protect = async (req, res, next) => {
     }
     
     if (user) {
-      console.log('✅ Found real user:', user._id);
       req.user = user;
     } else {
       // Fallback mock user
-      console.log('🤖 Using fallback mock user');
       req.user = {
         _id: '68d227cd15d549082906ce62',
         firstName: 'Test',
@@ -37,7 +30,6 @@ const protect = async (req, res, next) => {
         currentPersona: 'student'
       };
     }
-    console.log('👤 Set user:', req.user._id);
     return next();
   }
 

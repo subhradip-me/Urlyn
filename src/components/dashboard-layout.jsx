@@ -23,20 +23,6 @@ export function DashboardLayout({ children, persona }) {
   // Auto-switch persona when route changes
   useEffect(() => {
     const switchPersonaIfNeeded = async () => {
-      // Only switch if:
-      // 1. User is authenticated and loaded
-      // 2. We have a persona prop from the route
-      // 3. User's current persona doesn't match route persona
-      // 4. User has access to the requested persona
-      
-      console.log('DashboardLayout: Checking persona switch need', {
-        user: !!user,
-        persona,
-        userCurrentPersona: user?.currentPersona,
-        userPersonas: user?.personas,
-        isPersonaSwitching
-      });
-
       if (
         user && 
         persona && 
@@ -44,18 +30,15 @@ export function DashboardLayout({ children, persona }) {
         user.personas?.includes(persona) &&
         !isPersonaSwitching
       ) {
-        console.log(`DashboardLayout: Auto-switching persona from ${user.currentPersona} to ${persona}`);
         setIsPersonaSwitching(true);
         
         try {
           const result = await switchPersona(persona);
-          if (result.success) {
-            console.log(`DashboardLayout: Successfully switched to ${persona} persona`);
-          } else {
-            console.error('DashboardLayout: Failed to switch persona:', result.error);
+          if (!result.success) {
+            console.error('Failed to switch persona:', result.error);
           }
         } catch (error) {
-          console.error('DashboardLayout: Error switching persona:', error);
+          console.error('Error switching persona:', error);
         } finally {
           setIsPersonaSwitching(false);
         }
@@ -65,54 +48,23 @@ export function DashboardLayout({ children, persona }) {
     switchPersonaIfNeeded();
   }, [user, persona, switchPersona, isPersonaSwitching]);
 
-  // Check if user has access to the requested persona - TEMPORARILY DISABLED for debugging
+  // Check if user has access to the requested persona
   useEffect(() => {
-    // Temporarily disable this check to debug persona switching issue
-    console.log('DashboardLayout: Persona access check - DISABLED for debugging', {
-      user: !!user,
-      persona,
-      userPersonas: user?.personas,
-      isPersonaSwitching
-    });
-    
-    /* DISABLED - causing redirect issues during persona switching
-    // Only redirect if we're not in the middle of switching personas
-    // and the user definitely doesn't have access after a reasonable delay
     if (user && persona && !isPersonaSwitching && !user.personas?.includes(persona)) {
-      // Add a small delay to allow for state updates from persona switching
-      const timer = setTimeout(() => {
-        if (user && persona && !user.personas?.includes(persona)) {
-          console.log(`User doesn't have access to ${persona} persona, redirecting to dashboard`);
-          router.push('/dashboard');
-        }
-      }, 1000); // Wait 1 second for persona switch to complete
-
-      return () => clearTimeout(timer);
+      router.push('/dashboard');
     }
-    */
   }, [user, persona, router, isPersonaSwitching]);
 
   const handlePersonaChange = async (newPersona) => {
-    console.log('DashboardLayout: handlePersonaChange called with:', newPersona);
-    console.log('DashboardLayout: Call stack:', new Error().stack);
-    
     try {
-      // If user doesn't have this persona, redirect to dashboard to add it
       if (!user?.personas?.includes(newPersona)) {
-        console.log('DashboardLayout: User does not have persona, redirecting to dashboard');
         router.push('/dashboard');
         return;
       }
 
-      console.log('DashboardLayout: User has persona, switching...');
-      
-      // Switch persona
       const result = await switchPersona(newPersona);
       
       if (result.success) {
-        console.log('DashboardLayout: Persona switch successful, navigating to persona page');
-        
-        // Navigate to the appropriate persona page based on persona type
         let targetRoute;
         switch (newPersona) {
           case 'professional':
@@ -128,14 +80,12 @@ export function DashboardLayout({ children, persona }) {
             targetRoute = `/${newPersona}/home`;
         }
         
-        console.log('DashboardLayout: Navigating to:', targetRoute);
         router.push(targetRoute);
       } else {
-        console.error('DashboardLayout: Failed to switch persona:', result.error);
-        // Optionally show error message to user
+        console.error('Failed to switch persona:', result.error);
       }
     } catch (error) {
-      console.error('DashboardLayout: Error switching persona:', error);
+      console.error('Error switching persona:', error);
     }
   };
 

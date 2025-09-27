@@ -26,11 +26,6 @@ class ApiClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        console.log('API Request:', { 
-          url: config.url, 
-          method: config.method?.toUpperCase(), 
-          hasToken: !!token 
-        });
         return config;
       },
       (error) => {
@@ -42,7 +37,6 @@ class ApiClient {
     // Response interceptor for error handling
     this.axiosInstance.interceptors.response.use(
       (response) => {
-        console.log('Response status:', response.status, response.statusText);
         return response;
       },
       (error) => {
@@ -184,16 +178,12 @@ class ApiClient {
 
   // Folder management methods
   async getStudentFolders() {
-    console.log('getStudentFolders called - making API request to /student/folders');
     const result = await this.get('/student/folders');
-    console.log('getStudentFolders result:', result);
     return result;
   }
 
   async getStudentFolder(folderId) {
-    console.log('getStudentFolder called with folderId:', folderId);
     const result = await this.get(`/student/folders/${folderId}`);
-    console.log('getStudentFolder result:', result);
     return result;
   }
 

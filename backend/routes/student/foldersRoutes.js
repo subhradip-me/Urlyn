@@ -9,15 +9,10 @@ const getFolders = handleAsync(async (req, res) => {
   const persona = req.user.currentPersona || 'student'; // Use current persona or default to student
   const { includeItemCounts = 'true', parentFolderId } = req.query;
   
-  console.log('GET /api/student/folders called for user:', userId, 'persona:', persona);
-  console.log('User object:', req.user);
-  
   const folders = await FolderService.getUserFolders(userId, persona, {
     includeItemCounts: includeItemCounts === 'true',
     parentFolderId: parentFolderId || null
   });
-
-  console.log('Returning folders:', folders.length);
 
   sendSuccess(res, {
     folders,

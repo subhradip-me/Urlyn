@@ -144,8 +144,6 @@ class TagService {
       sortOrder = 'desc'
     } = options;
 
-    console.log(`🏷️  TagService.getContentByTag called for user ${studentId}, tag: ${tagName}`);
-
     try {
       const userId = new mongoose.Types.ObjectId(studentId);
       
@@ -155,10 +153,7 @@ class TagService {
         name: { $regex: new RegExp(`^${tagName.trim()}$`, 'i') }
       });
 
-      console.log(`🏷️  Found tag: ${tag ? tag.name : 'null'} with ID: ${tag ? tag._id : 'null'}`);
-
       if (!tag) {
-        console.log(`❌ No tag found with name: ${tagName}`);
         return {
           success: true,
           data: {
@@ -194,8 +189,6 @@ class TagService {
         .populate('folderId', 'name color')  // Use singular folderId
         .select('title description url favicon metadata clicks lastVisited createdAt updatedAt tags category');
 
-      console.log(`📖 Found ${bookmarks.length} bookmarks for tag: ${tagName}`);
-
       // Get notes with this tag - handle both string tags and ObjectId tags  
       const notes = await Note.find({
         userId: userId,
@@ -211,8 +204,6 @@ class TagService {
         .populate('folderId', 'name color')
         .populate('tagIds', 'name color')
         .select('title content contentType preview wordCount readingTime type aiMetadata createdAt updatedAt');
-
-      console.log(`📝 Found ${notes.length} notes for tag: ${tagName}`);
 
       // Combine and format content
       const content = [];
@@ -280,8 +271,6 @@ class TagService {
       });
 
       const total = totalBookmarks + totalNotes;
-
-      console.log(`✅ Returning ${content.length} total items (${totalBookmarks} bookmarks, ${totalNotes} notes) for tag: ${tagName}`);
 
       return {
         success: true,

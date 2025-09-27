@@ -29,25 +29,16 @@ class SocketManager {
     // Authentication middleware
     this.io.use(async (socket, next) => {
       try {
-        console.log('Socket auth: Checking authentication for socket', socket.id);
-        
         const token = socket.handshake.auth.token || 
                      socket.handshake.headers.authorization?.split(' ')[1] ||
                      socket.handshake.query.token;
         
-        console.log('Socket auth: Token provided:', !!token);
-        
         if (!token) {
-          console.log('Socket auth: No token provided');
           return next(new Error('Authentication error: No token provided'));
         }
 
-        console.log('Socket auth: Token length:', token.length);
-        console.log('Socket auth: Token starts with:', token.substring(0, 10) + '...');
-
         // Handle development mode special tokens
         if (process.env.NODE_ENV === 'development' && (token === 'dev-token-fallback' || process.env.BYPASS_AUTH === 'true')) {
-          console.log('🔧 Development mode: Using fallback token or auth bypass');
           const mockUser = {
             _id: '68d0e521d89923fb4cf80d54',
             firstName: 'Test',
@@ -68,7 +59,6 @@ class SocketManager {
             if (parts.length === 3) {
               // Decode the payload from our development token
               const payload = JSON.parse(atob(parts[1]));
-              console.log('🔧 Development JWT payload:', payload);
               
               if (payload.id && payload.email) {
                 const mockUser = {
@@ -85,13 +75,12 @@ class SocketManager {
               }
             }
           } catch (decodeError) {
-            console.log('🔧 Development token decode failed, trying normal JWT verification');
+            // Development token decode failed, trying normal JWT verification
           }
         }
 
         // If we're in development mode and have BYPASS_AUTH, allow any token
         if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
-          console.log('🔧 Development mode: Auth bypass enabled, allowing connection');
           const mockUser = {
             _id: '68d0e521d89923fb4cf80d54',
             firstName: 'Test',
@@ -107,16 +96,12 @@ class SocketManager {
 
         // Try normal JWT verification
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log('Socket auth: Token decoded successfully, user ID:', decoded.id);
         
         const user = await User.findById(decoded.id).select('firstName lastName email avatar isOnline');
         
         if (!user) {
-          console.log('Socket auth: User not found for ID:', decoded.id);
           return next(new Error('Authentication error: User not found'));
         }
-
-        console.log('Socket auth: Authentication successful for user:', user.email);
         socket.userId = user._id.toString();
         socket.user = user;
         next();
@@ -135,7 +120,7 @@ class SocketManager {
 
   setupEventHandlers() {
     this.io.on('connection', (socket) => {
-      console.log(`User ${socket.user.firstName} connected: ${socket.id}`);
+      // Store user data
       
       // Store user connection
       this.connectedUsers.set(socket.userId, socket.id);
@@ -427,11 +412,11 @@ class SocketManager {
   async sendPushNotifications(chat, message, senderId) {
     // Implementation for push notifications
     // This would integrate with services like Firebase, OneSignal, etc.
-    console.log('Push notification would be sent here');
+    // Push notification would be sent here
   }
 
   handleDisconnect(socket) {
-    console.log(`User ${socket.user.firstName} disconnected: ${socket.id}`);
+    // User disconnected
     
     // Clean up typing indicators
     this.typingUsers.forEach((typingSet, chatId) => {
