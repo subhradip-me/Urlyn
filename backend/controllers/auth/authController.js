@@ -105,7 +105,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 const addPersona = asyncHandler(async (req, res) => {
   const { persona } = req.body;
 
-  if (!persona || !['student', 'creator', 'professional'].includes(persona)) {
+  if (!persona || !['student', 'creator', 'professional', 'entrepreneur', 'researcher'].includes(persona)) {
     res.status(400);
     throw new Error('Invalid persona type');
   }
@@ -121,7 +121,7 @@ const addPersona = asyncHandler(async (req, res) => {
 
   // Create notification for new persona
   await Notification.create({
-    userId: user._id,
+    recipient: user._id,
     title: 'New Persona Added!',
     message: `You've successfully added the ${persona} persona. You can now switch between your personas anytime.`,
     type: 'system',
@@ -142,7 +142,7 @@ const addPersona = asyncHandler(async (req, res) => {
 const switchPersona = asyncHandler(async (req, res) => {
   const { persona } = req.body;
 
-  if (!persona || !['student', 'creator', 'professional'].includes(persona)) {
+  if (!persona || !['student', 'creator', 'professional', 'entrepreneur', 'researcher'].includes(persona)) {
     res.status(400);
     throw new Error('Invalid persona type');
   }

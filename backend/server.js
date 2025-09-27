@@ -19,6 +19,7 @@ import studentRoutes from './routes/student/studentRoutes.js';
 import metadataRoutes from './routes/common/metadataRoutes.js';
 import aiTagsRoutes from './routes/common/aiTagsRoutes.js';
 import chatRoutes from './routes/chat/chatRoutes.js';
+import coreRoutes from './routes/core/coreRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -123,7 +124,10 @@ app.use('/api/metadata', metadataRoutes);
 app.use('/api/ai-tags', aiTagsRoutes);
 app.use('/api/chats', chatRoutes);
 
-// Persona-specific routes
+// Core routes (persona-aware)
+app.use('/api/core', coreRoutes);
+
+// Persona-specific routes (legacy)
 app.use('/api/student', studentRoutes);
 // app.use('/api/creator', creatorRoutes);
 // app.use('/api/professional', professionalRoutes);

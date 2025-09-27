@@ -7,23 +7,39 @@ import apiClient from '@/lib/api-client';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { GraduationCap, ArrowRight, Plus, Users, BookOpen, TrendingUp, Activity, Bookmark, FileText, Camera, Briefcase } from 'lucide-react';
+import { GraduationCap, ArrowRight, Plus, Users, BookOpen, TrendingUp, Activity, Bookmark, FileText, Camera, Briefcase, Rocket, FlaskConical } from 'lucide-react';
 
 const PersonaCard = ({ persona, isActive, onSelect, onAdd, hasAccess }) => {
   const icons = {
-    student: GraduationCap
+    student: GraduationCap,
+    professional: Briefcase,
+    creator: Camera,
+    entrepreneur: Rocket,
+    researcher: FlaskConical
   };
 
   const colors = {
-    student: 'bg-blue-50 border-blue-200 text-blue-900'
+    student: 'bg-green-50 border-green-200 text-green-900',
+    professional: 'bg-blue-50 border-blue-200 text-blue-900',
+    creator: 'bg-purple-50 border-purple-200 text-purple-900',
+    entrepreneur: 'bg-orange-50 border-orange-200 text-orange-900',
+    researcher: 'bg-teal-50 border-teal-200 text-teal-900'
   };
 
   const descriptions = {
-    student: 'Access learning materials, take notes, organize assignments, and track your academic progress.'
+    student: 'Access learning materials, take notes, organize assignments, and track your academic progress.',
+    professional: 'Manage work projects, collaborate with team members, track deadlines, and organize professional resources.',
+    creator: 'Organize content ideas, manage creative projects, track inspiration, and collaborate with other creators.',
+    entrepreneur: 'Manage business ventures, track investments, network with partners, and monitor market opportunities.',
+    researcher: 'Organize research papers, manage citations, collaborate on studies, and track academic progress.'
   };
 
   const features = {
-    student: ['📚 Course Management', '📝 Note Taking', '📋 Assignment Tracking', '🔖 Bookmarks']
+    student: ['📚 Course Management', '📝 Note Taking', '📋 Assignment Tracking', '🔖 Bookmarks'],
+    professional: ['💼 Project Management', '👥 Team Collaboration', '📊 Analytics', '🔗 Resource Organization'],
+    creator: ['🎨 Content Planning', '💡 Idea Management', '📱 Social Analytics', '🤝 Creator Network'],
+    entrepreneur: ['🚀 Business Planning', '💰 Investment Tracking', '🤝 Partnership Network', '📈 Market Research'],
+    researcher: ['📖 Literature Review', '📊 Data Management', '👥 Research Collaboration', '📝 Citation Tracking']
   };
 
   const Icon = icons[persona];
@@ -324,11 +340,11 @@ const DashboardPage = () => {
         {/* Persona Selection */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-            {!user.personas || user.personas.length === 0 ? 'Choose Your First Persona' : 'Select a Persona'}
+            {!user.personas || user.personas.length === 0 ? 'Choose Your First Persona' : 'Manage Your Personas'}
           </h2>
           
-          <div className="grid grid-cols-1 gap-6 max-w-md mx-auto">
-            {['student'].map((persona) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {['student', 'professional', 'creator', 'entrepreneur', 'researcher'].map((persona) => (
               <PersonaCard
                 key={persona}
                 persona={persona}

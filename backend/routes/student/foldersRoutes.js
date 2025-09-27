@@ -6,12 +6,13 @@ import { handleAsync, sendSuccess, sendError } from '../../utils/responseHelpers
 // GET /api/student/folders - Get all folders for the user
 const getFolders = handleAsync(async (req, res) => {
   const userId = req.user._id;
+  const persona = req.user.currentPersona || 'student'; // Use current persona or default to student
   const { includeItemCounts = 'true', parentFolderId } = req.query;
   
-  console.log('GET /api/student/folders called for user:', userId);
+  console.log('GET /api/student/folders called for user:', userId, 'persona:', persona);
   console.log('User object:', req.user);
   
-  const folders = await FolderService.getUserFolders(userId, {
+  const folders = await FolderService.getUserFolders(userId, persona, {
     includeItemCounts: includeItemCounts === 'true',
     parentFolderId: parentFolderId || null
   });
@@ -31,8 +32,9 @@ router.get('/', getFolders);
 const getFolderById = handleAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req.user._id;
+  const persona = req.user.currentPersona || 'student';
   
-  const folder = await FolderService.getFolderById(userId, id);
+  const folder = await FolderService.getFolderById(userId, persona, id);
   sendSuccess(res, folder, 'Folder retrieved successfully');
 });
 
@@ -42,6 +44,7 @@ router.get('/:id', getFolderById);
 const getFolderContents = handleAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req.user._id;
+  const persona = req.user.currentPersona || 'student';
   const { 
     includeBookmarks = 'true', 
     includeNotes = 'true', 
@@ -50,7 +53,7 @@ const getFolderContents = handleAsync(async (req, res) => {
     offset = '0'
   } = req.query;
   
-  const result = await FolderService.getFolderContents(userId, id, {
+  const result = await FolderService.getFolderContents(userId, persona, id, {
     includeBookmarks: includeBookmarks === 'true',
     includeNotes: includeNotes === 'true', 
     includeTasks: includeTasks === 'true',
@@ -67,10 +70,11 @@ router.get('/:id/contents', getFolderContents);
 const addBookmarkToFolder = handleAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req.user._id;
+  const persona = req.user.currentPersona || 'student';
   const { bookmarkId } = req.body;
   
   // Get the folder to get its name
-  const folder = await FolderService.getFolderById(userId, id);
+  const folder = await FolderService.getFolderById(userId, persona, id);
   
   // Update the bookmark to use this folder
   const { default: Bookmark } = await import('../../models/student/Bookmark.js');
@@ -87,9 +91,10 @@ router.post('/:id/add-bookmark', addBookmarkToFolder);
 // POST /api/student/folders - Create new folder
 const createFolder = handleAsync(async (req, res) => {
   const userId = req.user._id;
+  const persona = req.user.currentPersona || 'student';
   const folderData = req.body;
   
-  const folder = await FolderService.createFolder(userId, folderData);
+  const folder = await FolderService.createFolder(userId, persona, folderData);
   sendSuccess(res, folder, 'Folder created successfully', 201);
 });
 
@@ -99,9 +104,10 @@ router.post('/', createFolder);
 const updateFolder = handleAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req.user._id;
+  const persona = req.user.currentPersona || 'student';
   const updateData = req.body;
   
-  const folder = await FolderService.updateFolder(userId, id, updateData);
+  const folder = await FolderService.updateFolder(userId, persona, id, updateData);
   sendSuccess(res, folder, 'Folder updated successfully');
 });
 
@@ -111,8 +117,9 @@ router.put('/:id', updateFolder);
 const deleteFolder = handleAsync(async (req, res) => {
   const { id } = req.params;
   const userId = req.user._id;
+  const persona = req.user.currentPersona || 'student';
   
-  const result = await FolderService.deleteFolder(userId, id);
+  const result = await FolderService.deleteFolder(userId, persona, id);
   sendSuccess(res, result);
 });
 
@@ -121,8 +128,9 @@ router.delete('/:id', deleteFolder);
 // POST /api/student/folders/initialize - Initialize default folders for new user
 const initializeDefaultFolders = handleAsync(async (req, res) => {
   const userId = req.user._id;
+  const persona = req.user.currentPersona || 'student';
   
-  const folders = await FolderService.initializeDefaultFolders(userId);
+  const folders = await FolderService.initializeDefaultFolders(userId, persona);
   sendSuccess(res, { folders, count: folders.length }, 'Default folders initialized successfully', 201);
 });
 

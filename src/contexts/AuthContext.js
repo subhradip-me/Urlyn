@@ -144,7 +144,7 @@ export function AuthProvider({ children }) {
           firstName: 'Test',
           lastName: 'User',
           email: 'test@example.com',
-          personas: ['student'],
+          personas: ['student', 'professional', 'creator', 'entrepreneur', 'researcher'], // All personas available
           currentPersona: 'student',
           preferences: {
             notifications: { email: true, push: true },
@@ -155,6 +155,10 @@ export function AuthProvider({ children }) {
         
         // Generate a proper JWT token for development
         const mockToken = await generateDevToken(mockUser);
+        
+        // Set token in API client and localStorage for consistency
+        localStorage.setItem('authToken', mockToken);
+        apiClient.setToken(mockToken);
         
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,

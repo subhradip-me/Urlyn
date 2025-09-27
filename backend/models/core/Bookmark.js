@@ -6,6 +6,12 @@ const bookmarkSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  persona: {
+    type: String,
+    enum: ['student', 'creator', 'professional'],
+    required: [true, 'Persona is required'],
+    index: true
+  },
   folderIds: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Folder'
@@ -88,13 +94,14 @@ const bookmarkSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for efficient queries
-bookmarkSchema.index({ userId: 1, isArchived: 1, createdAt: -1 });
-bookmarkSchema.index({ userId: 1, folderIds: 1 });
-bookmarkSchema.index({ userId: 1, tagIds: 1 });
-bookmarkSchema.index({ url: 1, userId: 1 }, { unique: true });
+// Indexes for efficient queries (updated for persona-specific data)
+bookmarkSchema.index({ userId: 1, persona: 1, isArchived: 1, createdAt: -1 });
+bookmarkSchema.index({ userId: 1, persona: 1, folderIds: 1 });
+bookmarkSchema.index({ userId: 1, persona: 1, tagIds: 1 });
+bookmarkSchema.index({ url: 1, userId: 1, persona: 1 }, { unique: true });
 bookmarkSchema.index({ shortUrl: 1 }, { sparse: true });
 bookmarkSchema.index({ clicks: -1 });
+bookmarkSchema.index({ persona: 1, createdAt: -1 });
 
 // Virtual for domain extraction
 bookmarkSchema.virtual('domain').get(function() {
@@ -115,5 +122,5 @@ bookmarkSchema.virtual('tagNames').get(function() {
   return [];
 });
 
-const Bookmark = mongoose.models.Bookmark || mongoose.model('Bookmark', bookmarkSchema);
-export default Bookmark;
+const CoreBookmark = mongoose.models.CoreBookmark || mongoose.model('CoreBookmark', bookmarkSchema);
+export default CoreBookmark;

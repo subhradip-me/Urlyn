@@ -6,7 +6,7 @@ import { Home, BookOpen, Clock, Star, TrendingUp } from "lucide-react";
 
 export default function StudentHome() {
   return (
-    <DashboardLayout>
+    <DashboardLayout persona="student">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -146,6 +146,43 @@ export default function StudentHome() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Recent Updates */}
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Updates</h2>
+          <div className="space-y-4">
+            <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex-shrink-0">
+                <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-900">New achievement unlocked</p>
+                <p className="text-sm text-gray-600">Completed all assignments for Math 101</p>
+                <p className="text-xs text-gray-400">Published 2 days ago</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex-shrink-0">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-900">Upcoming exam scheduled</p>
+                <p className="text-sm text-gray-600">Final exam for Physics 201</p>
+                <p className="text-xs text-gray-400">Scheduled for next week</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex-shrink-0">
+                <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-900">Scholarship awarded</p>
+                <p className="text-sm text-gray-600">Received merit scholarship for outstanding performance</p>
+                <p className="text-xs text-gray-400">Approved 1 week ago</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

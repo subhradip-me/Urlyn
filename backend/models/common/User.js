@@ -24,11 +24,11 @@ const userSchema = new mongoose.Schema({
   // Multi-persona support - users can access all personas
   personas: [{
     type: String,
-    enum: ['student', 'creator', 'professional']
+    enum: ['student', 'creator', 'professional', 'entrepreneur', 'researcher']
   }],
   currentPersona: {
     type: String,
-    enum: ['student', 'creator', 'professional'],
+    enum: ['student', 'creator', 'professional', 'entrepreneur', 'researcher'],
     default: null
   },
   profilePicture: {

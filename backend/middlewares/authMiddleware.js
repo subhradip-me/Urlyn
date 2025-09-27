@@ -122,8 +122,20 @@ const requireCurrentPersona = (requiredPersona) => {
   };
 };
 
+// Middleware to add current persona to request
+const addCurrentPersona = (req, res, next) => {
+  if (req.user && req.user.currentPersona) {
+    req.persona = req.user.currentPersona;
+  } else {
+    // Default to student persona if none set
+    req.persona = 'student';
+  }
+  next();
+};
+
 export { 
   protect, 
   requirePersona, 
-  requireCurrentPersona 
+  requireCurrentPersona,
+  addCurrentPersona
 };

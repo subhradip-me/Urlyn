@@ -1,10 +1,16 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const taskSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  persona: {
+    type: String,
+    enum: ['student', 'creator', 'professional'],
+    required: [true, 'Persona is required'],
+    index: true
   },
   tagIds: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -98,14 +104,15 @@ const taskSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for efficient queries
-taskSchema.index({ userId: 1, status: 1, dueDate: 1 });
-taskSchema.index({ userId: 1, folderId: 1 });
-taskSchema.index({ userId: 1, tagIds: 1 });
-taskSchema.index({ userId: 1, priority: 1, createdAt: -1 });
+// Indexes for efficient queries (updated for persona-specific data)
+taskSchema.index({ userId: 1, persona: 1, status: 1, dueDate: 1 });
+taskSchema.index({ userId: 1, persona: 1, folderId: 1 });
+taskSchema.index({ userId: 1, persona: 1, tagIds: 1 });
+taskSchema.index({ userId: 1, persona: 1, priority: 1, createdAt: -1 });
 taskSchema.index({ dueDate: 1, status: 1 });
 taskSchema.index({ reminderDate: 1 });
 taskSchema.index({ assignedTo: 1, status: 1 });
+taskSchema.index({ persona: 1, createdAt: -1 });
 
 // Virtual for completion percentage
 taskSchema.virtual('completionPercentage').get(function() {
@@ -135,4 +142,5 @@ taskSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Task', taskSchema);
+const Task = mongoose.models.Task || mongoose.model('Task', taskSchema);
+export default Task;

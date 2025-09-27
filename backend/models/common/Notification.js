@@ -18,6 +18,7 @@ const notificationSchema = new mongoose.Schema({
       // System notifications
       'system_announcement',
       'account_update',
+      'system',
       
       // Student notifications
       'assignment_due',
@@ -36,6 +37,18 @@ const notificationSchema = new mongoose.Schema({
       'task_deadline',
       'team_update',
       'collaboration_invite',
+      
+      // Entrepreneur notifications
+      'investment_update',
+      'funding_opportunity',
+      'partnership_request',
+      'market_insight',
+      
+      // Researcher notifications
+      'paper_published',
+      'research_grant',
+      'collaboration_request',
+      'conference_update',
       
       // Cross-persona
       'persona_switched',
@@ -63,7 +76,7 @@ const notificationSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['general', 'academic', 'content', 'work', 'system'],
+    enum: ['general', 'academic', 'content', 'work', 'business', 'research', 'system'],
     default: 'general'
   },
   isRead: {
@@ -85,7 +98,7 @@ const notificationSchema = new mongoose.Schema({
   // Persona context - which persona was active when notification was created
   targetPersona: {
     type: String,
-    enum: ['student', 'creator', 'professional', 'all'],
+    enum: ['student', 'creator', 'professional', 'entrepreneur', 'researcher', 'all'],
     default: 'all'
   }
 }, {

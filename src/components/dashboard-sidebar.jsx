@@ -51,7 +51,12 @@ import {
   Heart,
   Play,
   FolderPlus,
-  X
+  X,
+  Rocket,
+  FlaskConical,
+  Network,
+  DollarSign,
+  Handshake
 } from "lucide-react";
 
 // Persona configurations
@@ -79,11 +84,116 @@ const personaConfigs = {
       { title: "Shared Notes", icon: UserPlus, href: "/student/shared-notes" },
       { title: "AI Notes", icon: Sparkles, href: "/student/ai-notes" },
     ]
+  },
+  professional: {
+    title: "Work Hub",
+    subtitle: "Professional Projects",
+    icon: Briefcase,
+    color: "bg-blue-500",
+    menuItems: [
+      { title: "Dashboard", icon: LayoutDashboard, href: "/professional/dashboard" },
+      { title: "All Bookmarks", icon: BookMarked, href: "/professional/bookmarks" },
+      { 
+        title: "My Folders", 
+        icon: Folder, 
+        href: "/professional/folders", 
+        isExpandable: true,
+        subItems: [
+          { title: "Project A", icon: Building, href: "/professional/folders/project-a" },
+          { title: "Client Research", icon: Search, href: "/professional/folders/client-research" },
+        ]
+      },
+      { title: "Shared With Me", icon: Share2, href: "/professional/shared" },
+      { title: "Team Workspace", icon: Users, href: "/professional/team" },
+      { title: "Analytics", icon: TrendingUp, href: "/professional/analytics" },
+    ]
+  },
+  creator: {
+    title: "Creator Hub",
+    subtitle: "Content Creation",
+    icon: Camera,
+    color: "bg-purple-500",
+    menuItems: [
+      { title: "Home", icon: Home, href: "/creator/home" },
+      { title: "All Bookmarks", icon: BookMarked, href: "/creator/bookmarks" },
+      { 
+        title: "Content Vault", 
+        icon: Database, 
+        href: "/creator/content", 
+        isExpandable: true,
+        subItems: [
+          { title: "Ideas", icon: Lightbulb, href: "/creator/content/ideas" },
+          { title: "Scripts", icon: PenTool, href: "/creator/content/scripts" },
+          { title: "References", icon: Book, href: "/creator/content/references" },
+        ]
+      },
+      { 
+        title: "Tags", 
+        icon: Tag, 
+        href: "/creator/tags", 
+        isExpandable: true,
+        subItems: [
+          { title: "Tech", icon: Cpu, href: "/creator/tags/tech" },
+          { title: "Lifestyle", icon: Heart, href: "/creator/tags/lifestyle" },
+          { title: "Tutorial", icon: Play, href: "/creator/tags/tutorial" },
+        ]
+      },
+      { title: "AI Research Assistant", icon: Sparkles, href: "/creator/ai-assistant" },
+      { title: "Analytics", icon: TrendingUp, href: "/creator/analytics" },
+    ]
+  },
+  entrepreneur: {
+    title: "Entrepreneur Hub",
+    subtitle: "Business & Innovation",
+    icon: Rocket,
+    color: "bg-orange-500",
+    menuItems: [
+      { title: "Dashboard", icon: LayoutDashboard, href: "/entrepreneur/dashboard" },
+      { title: "All Bookmarks", icon: BookMarked, href: "/entrepreneur/bookmarks" },
+      { 
+        title: "My Folders", 
+        icon: Folder, 
+        href: "/entrepreneur/folders", 
+        isExpandable: true,
+        subItems: [
+          { title: "Market Research", icon: TrendingUp, href: "/entrepreneur/folders/market-research" },
+          { title: "Funding", icon: DollarSign, href: "/entrepreneur/folders/funding" },
+          { title: "Partnerships", icon: Handshake, href: "/entrepreneur/folders/partnerships" },
+        ]
+      },
+      { title: "Business Network", icon: Network, href: "/entrepreneur/network" },
+      { title: "Investment Tracker", icon: DollarSign, href: "/entrepreneur/investments" },
+      { title: "Market Analytics", icon: BarChart3, href: "/entrepreneur/analytics" },
+    ]
+  },
+  researcher: {
+    title: "Research Hub",
+    subtitle: "Academic & Scientific",
+    icon: FlaskConical,
+    color: "bg-teal-500",
+    menuItems: [
+      { title: "Home", icon: Home, href: "/researcher/home" },
+      { title: "All Bookmarks", icon: BookMarked, href: "/researcher/bookmarks" },
+      { 
+        title: "My Folders", 
+        icon: Folder, 
+        href: "/researcher/folders", 
+        isExpandable: true,
+        subItems: [
+          { title: "Literature Review", icon: Book, href: "/researcher/folders/literature" },
+          { title: "Data Sources", icon: Database, href: "/researcher/folders/data" },
+          { title: "Methodology", icon: Target, href: "/researcher/folders/methodology" },
+        ]
+      },
+      { title: "Citations", icon: FileText, href: "/researcher/citations" },
+      { title: "Collaboration", icon: Users, href: "/researcher/collaboration" },
+      { title: "Research Analytics", icon: BarChart3, href: "/researcher/analytics" },
+    ]
   }
 };
 
 export function DashboardSidebar({ className, persona = "student", onPersonaChange }) {
-  const { user, logout } = useAuth();
+  const { user, logout, addPersona, switchPersona } = useAuth();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeItem, setActiveItem] = useState("Home");
@@ -115,9 +225,29 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
 
   // Fetch user folders when persona is student
   useEffect(() => {
-    if (persona === 'student' && user) {
-      fetchUserFolders();
-    }
+    const initializePersonaData = async () => {
+      if (persona === 'student' && user) {
+        // Ensure the backend user is switched to student persona
+        if (user.currentPersona !== 'student') {
+          try {
+            const result = await switchPersona('student');
+            if (result.success) {
+              // Now fetch folders after switching persona
+              fetchUserFolders();
+            } else {
+              console.error('Failed to switch to student persona:', result.error);
+            }
+          } catch (error) {
+            console.error('Error switching to student persona:', error);
+          }
+        } else {
+          // Already on student persona, just fetch folders
+          fetchUserFolders();
+        }
+      }
+    };
+    
+    initializePersonaData();
   }, [persona, user]);
 
   const fetchUserFolders = async () => {
@@ -208,8 +338,10 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
   // Persona options for dropdown
   const personaOptions = [
     { key: 'student', label: 'Student', subtitle: 'Learning & Study', icon: GraduationCap, color: 'bg-green-500' },
-    { key: 'work', label: 'Work', subtitle: 'Professional Projects', icon: Briefcase, color: 'bg-blue-500' },
-    { key: 'creator', label: 'Creator', subtitle: 'Content Creation', icon: Camera, color: 'bg-purple-500' }
+    { key: 'professional', label: 'Professional', subtitle: 'Work & Projects', icon: Briefcase, color: 'bg-blue-500' },
+    { key: 'creator', label: 'Creator', subtitle: 'Content Creation', icon: Camera, color: 'bg-purple-500' },
+    { key: 'entrepreneur', label: 'Entrepreneur', subtitle: 'Business & Innovation', icon: Rocket, color: 'bg-orange-500' },
+    { key: 'researcher', label: 'Researcher', subtitle: 'Academic & Scientific', icon: FlaskConical, color: 'bg-teal-500' }
   ];
 
   const toggleSidebar = () => {
@@ -227,18 +359,76 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
     }));
   };
 
-  const handlePersonaChange = (newPersona) => {
-    if (onPersonaChange) {
-      onPersonaChange(newPersona);
+  const handlePersonaChange = async (newPersona) => {
+    try {
+      console.log('Sidebar: Starting persona change to:', newPersona);
+      
+      // Switch persona in the backend first
+      const result = await switchPersona(newPersona);
+      console.log('Sidebar: switchPersona result:', result);
+      
+      if (result.success) {
+        // Navigate to the new persona's default route
+        let defaultRoute;
+        switch (newPersona) {
+          case 'professional':
+          case 'entrepreneur':
+            defaultRoute = `/${newPersona}/dashboard`;
+            setActiveItem('Dashboard');
+            break;
+          case 'student':
+          case 'creator':
+          case 'researcher':
+            defaultRoute = `/${newPersona}/home`;
+            setActiveItem('Home');
+            break;
+          default:
+            defaultRoute = `/${newPersona}/home`;
+            setActiveItem('Home');
+        }
+        
+        console.log('Sidebar: Navigating to:', defaultRoute);
+        
+        // Navigate to the new persona route
+        router.push(defaultRoute);
+        
+        // Don't call onPersonaChange here as it causes a race condition
+        // The DashboardLayout will automatically detect the route change and switch persona
+        // if (onPersonaChange) {
+        //   onPersonaChange(newPersona);
+        // }
+        
+        setShowPersonaDropdown(false);
+        // Reset expanded items when switching personas
+        setExpandedItems({});
+      } else {
+        console.error('Failed to switch persona:', result.error);
+        alert('Failed to switch persona: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error switching persona:', error);
+      alert('Error switching persona: ' + error.message);
     }
-    setShowPersonaDropdown(false);
-    // Reset expanded items when switching personas
-    setExpandedItems({});
-    // Set appropriate default active item based on persona
-    if (newPersona === 'work') {
-      setActiveItem('Dashboard');
-    } else {
-      setActiveItem('Home');
+  };
+
+  const handleAddPersona = async (newPersona) => {
+    try {
+      setShowPersonaDropdown(false);
+      
+      // Use AuthContext to add the persona
+      const result = await addPersona(newPersona);
+      
+      if (result.success) {
+        // Show success message
+        console.log('Persona added successfully:', result.message);
+        // The AuthContext will automatically update the user state
+      } else {
+        console.error('Failed to add persona:', result.error);
+        alert('Failed to add persona: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error adding persona:', error);
+      alert('Error adding persona: ' + error.message);
     }
   };
 
@@ -580,6 +770,7 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
               {/* Persona Dropdown */}
               {showPersonaDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50">
+                  {/* Available personas - show user's personas */}
                   {personaOptions
                     .filter(option => user?.personas?.includes(option.key))
                     .map((option) => {
@@ -591,7 +782,7 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
                           key={option.key}
                           variant="ghost"
                           className={cn(
-                            "w-full justify-start gap-3 h-12 rounded-none first:rounded-t-lg last:rounded-b-lg",
+                            "w-full justify-start gap-3 h-12 rounded-none first:rounded-t-lg",
                             isSelected && "bg-secondary text-secondary-foreground"
                           )}
                           onClick={() => handlePersonaChange(option.key)}
@@ -613,28 +804,37 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
                       );
                     })}
                   
-                  {/* Add Persona button if user doesn't have all personas */}
-                  {user?.personas?.length < 3 && (
-                    <>
-                      <Separator className="my-1" />
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-3 h-12 rounded-none rounded-b-lg text-blue-600 hover:text-blue-700"
-                        onClick={() => {
-                          setShowPersonaDropdown(false);
-                          router.push('/dashboard');
-                        }}
-                      >
-                        <div className="flex h-6 w-6 items-center justify-center rounded border-2 border-dashed border-blue-300">
-                          <Plus className="h-3 w-3" />
-                        </div>
-                        <div className="flex flex-col items-start">
-                          <span className="text-sm font-medium">Add Persona</span>
-                          <span className="text-xs text-muted-foreground">Expand your workspace</span>
-                        </div>
-                      </Button>
-                    </>
+                  {/* Divider if user has personas and can add more */}
+                  {user?.personas?.length > 0 && user?.personas?.length < 5 && (
+                    <Separator className="my-1" />
                   )}
+                  
+                  {/* Available personas to add */}
+                  {personaOptions
+                    .filter(option => !user?.personas?.includes(option.key))
+                    .map((option) => {
+                      const OptionIcon = option.icon;
+                      
+                      return (
+                        <Button
+                          key={`add-${option.key}`}
+                          variant="ghost"
+                          className="w-full justify-start gap-3 h-12 rounded-none text-muted-foreground hover:text-foreground border-l-4 border-transparent hover:border-blue-500 last:rounded-b-lg"
+                          onClick={() => handleAddPersona(option.key)}
+                        >
+                          <div className={cn(
+                            "flex h-6 w-6 items-center justify-center rounded border-2 border-dashed text-xs",
+                            "border-gray-300 text-gray-400"
+                          )}>
+                            <Plus className="h-3 w-3" />
+                          </div>
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm font-medium">Add {option.label}</span>
+                            <span className="text-xs text-muted-foreground">{option.subtitle}</span>
+                          </div>
+                        </Button>
+                      );
+                    })}
                 </div>
               )}
             </div>

@@ -6,6 +6,12 @@ const tagSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  persona: {
+    type: String,
+    enum: ['student', 'creator', 'professional'],
+    required: [true, 'Persona is required'],
+    index: true
+  },
   name: {
     type: String,
     required: [true, 'Tag name is required'],
@@ -42,9 +48,10 @@ const tagSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Compound index for user + tag name uniqueness
-tagSchema.index({ userId: 1, name: 1 }, { unique: true });
-tagSchema.index({ userId: 1, usageCount: -1 });
+// Compound index for user + persona + tag name uniqueness
+tagSchema.index({ userId: 1, persona: 1, name: 1 }, { unique: true });
+tagSchema.index({ userId: 1, persona: 1, usageCount: -1 });
+tagSchema.index({ userId: 1, persona: 1, createdAt: -1 });
 
 // Virtual for calculating popularity
 tagSchema.virtual('popularity').get(function() {

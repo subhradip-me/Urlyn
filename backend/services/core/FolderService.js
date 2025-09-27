@@ -1,18 +1,19 @@
 import Folder from '../../models/core/Folder.js';
-import Bookmark from '../../models/student/Bookmark.js'; // Use existing for now
-// import Note from '../../models/core/Note.js';
-// import Task from '../../models/core/Task.js';
+import CoreBookmark from '../../models/core/Bookmark.js';
+import Note from '../../models/core/Note.js';
+import Task from '../../models/core/Task.js';
 
 class FolderService {
-  // Get all folders for a user
-  static async getUserFolders(userId, options = {}) {
+  // Get all folders for a user's specific persona
+  static async getUserFolders(userId, persona, options = {}) {
     try {
       const { includeItemCounts = false, parentFolderId = null } = options;
 
-      console.log('FolderService.getUserFolders called with userId:', userId);
+      console.log('FolderService.getUserFolders called with userId:', userId, 'persona:', persona);
 
       const query = { 
         userId,
+        persona,
         parentFolderId: parentFolderId || { $in: [null, undefined] }
       };
 
@@ -25,19 +26,19 @@ class FolderService {
       console.log('Found folders:', folders.length, folders.map(f => f.name));
 
       if (includeItemCounts) {
-        // Get item counts for each folder
+        // Get item counts for each folder using persona-aware core models
         for (let folder of folders) {
-          const [bookmarkCount] = await Promise.all([
-            Bookmark.countDocuments({ student: userId, folder: folder.name }) // Use folder name for now
-            // Note.countDocuments({ userId, folderId: folder._id }),
-            // Task.countDocuments({ userId, folderId: folder._id })
+          const [bookmarkCount, noteCount, taskCount] = await Promise.all([
+            CoreBookmark.countDocuments({ userId, persona, folderIds: folder._id }),
+            Note.countDocuments({ userId, persona, folderId: folder._id }),
+            Task.countDocuments({ userId, persona, folderId: folder._id })
           ]);
 
           folder.itemCounts = {
             bookmarks: bookmarkCount,
-            notes: 0, // noteCount,
-            tasks: 0, // taskCount,
-            total: bookmarkCount // + noteCount + taskCount
+            notes: noteCount,
+            tasks: taskCount,
+            total: bookmarkCount + noteCount + taskCount
           };
         }
       }
@@ -49,10 +50,10 @@ class FolderService {
     }
   }
 
-  // Get folder by ID
-  static async getFolderById(userId, folderId) {
+  // Get folder by ID for specific persona
+  static async getFolderById(userId, persona, folderId) {
     try {
-      const folder = await Folder.findOne({ _id: folderId, userId });
+      const folder = await Folder.findOne({ _id: folderId, userId, persona });
       if (!folder) {
         throw new Error('Folder not found');
       }
@@ -62,25 +63,26 @@ class FolderService {
     }
   }
 
-  // Create new folder
-  static async createFolder(userId, folderData) {
+  // Create new folder for specific persona
+  static async createFolder(userId, persona, folderData) {
     try {
       const { name, icon, color, description, parentFolderId } = folderData;
 
-      // Check for duplicate names in the same parent folder
+      // Check for duplicate names in the same parent folder for the same persona
       const existingFolder = await Folder.findOne({
         userId,
+        persona,
         name: { $regex: new RegExp(`^${name}$`, 'i') },
         parentFolderId: parentFolderId || { $in: [null, undefined] }
       });
 
       if (existingFolder) {
-        throw new Error('A folder with this name already exists in this location');
+        throw new Error('A folder with this name already exists in this location for this persona');
       }
 
       // Validate parent folder if provided
       if (parentFolderId) {
-        const parentFolder = await Folder.findOne({ _id: parentFolderId, userId });
+        const parentFolder = await Folder.findOne({ _id: parentFolderId, userId, persona });
         if (!parentFolder) {
           throw new Error('Parent folder not found');
         }
@@ -88,6 +90,7 @@ class FolderService {
 
       const folder = new Folder({
         userId,
+        persona,
         name,
         icon: icon || '📂',
         color: color || '#3B82F6',
@@ -102,34 +105,35 @@ class FolderService {
     }
   }
 
-  // Update folder
-  static async updateFolder(userId, folderId, updateData) {
+  // Update folder for specific persona
+  static async updateFolder(userId, persona, folderId, updateData) {
     try {
       const { name, icon, color, description, parentFolderId } = updateData;
 
-      // Check if folder exists and belongs to user
-      const folder = await Folder.findOne({ _id: folderId, userId });
+      // Check if folder exists and belongs to user and persona
+      const folder = await Folder.findOne({ _id: folderId, userId, persona });
       if (!folder) {
         throw new Error('Folder not found');
       }
 
-      // If updating name, check for duplicates
+      // If updating name, check for duplicates in the same persona
       if (name && name !== folder.name) {
         const existingFolder = await Folder.findOne({
           userId,
+          persona,
           name: { $regex: new RegExp(`^${name}$`, 'i') },
           parentFolderId: parentFolderId || folder.parentFolderId || { $in: [null, undefined] },
           _id: { $ne: folderId }
         });
 
         if (existingFolder) {
-          throw new Error('A folder with this name already exists in this location');
+          throw new Error('A folder with this name already exists in this location for this persona');
         }
       }
 
       // Validate parent folder if provided
       if (parentFolderId && parentFolderId !== folder.parentFolderId) {
-        const parentFolder = await Folder.findOne({ _id: parentFolderId, userId });
+        const parentFolder = await Folder.findOne({ _id: parentFolderId, userId, persona });
         if (!parentFolder) {
           throw new Error('Parent folder not found');
         }
@@ -158,52 +162,51 @@ class FolderService {
     }
   }
 
-  // Delete folder
-  static async deleteFolder(userId, folderId) {
+  // Delete folder for specific persona
+  static async deleteFolder(userId, persona, folderId) {
     try {
-      const folder = await Folder.findOne({ _id: folderId, userId });
+      const folder = await Folder.findOne({ _id: folderId, userId, persona });
       if (!folder) {
         throw new Error('Folder not found');
       }
 
       // Check if folder has subfolders
-      const subfolderCount = await Folder.countDocuments({ 
-        userId, 
-        parentFolderId: folderId 
-      });
-
-      if (subfolderCount > 0) {
-        throw new Error('Cannot delete folder that contains subfolders');
+      const subfolders = await Folder.find({ parentFolderId: folderId, userId, persona });
+      if (subfolders.length > 0) {
+        throw new Error('Cannot delete folder with subfolders. Please delete subfolders first.');
       }
 
-      // Get item counts - check both folder name and folder ID for bookmarks
-      const [bookmarkCountByName, bookmarkCountById] = await Promise.all([
-        Bookmark.countDocuments({ student: userId, folder: folder.name }),
-        Bookmark.countDocuments({ student: userId, folderId: folderId })
+      // Check if folder contains items
+      const [bookmarkCount, noteCount, taskCount] = await Promise.all([
+        CoreBookmark.countDocuments({ userId, persona, folderIds: folderId }),
+        Note.countDocuments({ userId, persona, folderId }),
+        Task.countDocuments({ userId, persona, folderId })
       ]);
 
-      const bookmarkCount = Math.max(bookmarkCountByName, bookmarkCountById);
-      const totalItems = bookmarkCount; // + noteCount + taskCount when implemented
-
+      const totalItems = bookmarkCount + noteCount + taskCount;
       if (totalItems > 0) {
-        // Move items to "General" folder
+        // Move items to "General" folder instead of preventing deletion
         await Promise.all([
-          Bookmark.updateMany(
-            { student: userId, folder: folder.name },
-            { folder: 'General', folderId: null }
+          CoreBookmark.updateMany(
+            { userId, persona, folderIds: folderId },
+            { $pull: { folderIds: folderId } }
           ),
-          Bookmark.updateMany(
-            { student: userId, folderId: folderId },
-            { folder: 'General', folderId: null }
+          Note.updateMany(
+            { userId, persona, folderId },
+            { folderId: null }
+          ),
+          Task.updateMany(
+            { userId, persona, folderId },
+            { folderId: null }
           )
         ]);
       }
 
       await Folder.findByIdAndDelete(folderId);
-
-      return {
+      
+      return { 
         message: 'Folder deleted successfully',
-        itemsMoved: totalItems
+        itemsMoved: totalItems 
       };
     } catch (error) {
       throw new Error(`Failed to delete folder: ${error.message}`);
@@ -211,7 +214,7 @@ class FolderService {
   }
 
   // Get folder contents
-  static async getFolderContents(userId, folderId, options = {}) {
+  static async getFolderContents(userId, persona, folderId, options = {}) {
     try {
       const { 
         includeBookmarks = true, 
@@ -221,7 +224,7 @@ class FolderService {
         offset = 0
       } = options;
 
-      const folder = await Folder.findOne({ _id: folderId, userId });
+      const folder = await Folder.findOne({ _id: folderId, userId, persona });
       if (!folder) {
         throw new Error('Folder not found');
       }
@@ -229,14 +232,10 @@ class FolderService {
       const contents = {};
 
       if (includeBookmarks) {
-        // Search by both folder name and folder ID to maintain compatibility
-        const bookmarks = await Bookmark.find({ 
-          student: userId, 
-          $or: [
-            { folder: folder.name },
-            { folderId: folderId }
-          ],
-          isArchived: false
+        const bookmarks = await CoreBookmark.find({ 
+          userId, 
+          persona,
+          folderIds: folderId
         })
         .sort({ createdAt: -1 })
         .limit(limit)
@@ -245,25 +244,55 @@ class FolderService {
         contents.bookmarks = bookmarks;
       }
 
-      // Notes and tasks will be implemented when those models are ready
       if (includeNotes) {
-        contents.notes = [];
+        const notes = await Note.find({
+          userId,
+          persona, 
+          folderId
+        })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(offset);
+
+        contents.notes = notes;
       }
 
       if (includeTasks) {
-        contents.tasks = [];
+        const tasks = await Task.find({
+          userId,
+          persona,
+          folderId
+        })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(offset);
+
+        contents.tasks = tasks;
       }
 
       // Get total counts for pagination
       const totalCounts = {};
       if (includeBookmarks) {
-        totalCounts.bookmarks = await Bookmark.countDocuments({ 
-          student: userId, 
-          $or: [
-            { folder: folder.name },
-            { folderId: folderId }
-          ],
-          isArchived: false
+        totalCounts.bookmarks = await CoreBookmark.countDocuments({ 
+          userId, 
+          persona,
+          folderIds: folderId
+        });
+      }
+
+      if (includeNotes) {
+        totalCounts.notes = await Note.countDocuments({
+          userId,
+          persona,
+          folderId
+        });
+      }
+
+      if (includeTasks) {
+        totalCounts.tasks = await Task.countDocuments({
+          userId,
+          persona,
+          folderId
         });
       }
 
@@ -275,7 +304,9 @@ class FolderService {
           limit,
           offset,
           hasMore: {
-            bookmarks: includeBookmarks ? totalCounts.bookmarks > (offset + limit) : false
+            bookmarks: includeBookmarks ? totalCounts.bookmarks > (offset + limit) : false,
+            notes: includeNotes ? totalCounts.notes > (offset + limit) : false,
+            tasks: includeTasks ? totalCounts.tasks > (offset + limit) : false
           }
         }
       };
@@ -285,12 +316,12 @@ class FolderService {
   }
 
   // Initialize default folders for new user
-  static async initializeDefaultFolders(userId) {
+  static async initializeDefaultFolders(userId, persona) {
     try {
-      // First check if user already has folders
-      const existingFolders = await Folder.find({ userId });
+      // First check if user already has folders for this persona
+      const existingFolders = await Folder.find({ userId, persona });
       if (existingFolders.length > 0) {
-        console.log('User already has folders, skipping initialization');
+        console.log('User already has folders for this persona, skipping initialization');
         return existingFolders;
       }
 
@@ -332,14 +363,14 @@ class FolderService {
       const folders = [];
       for (const folderData of defaultFolders) {
         try {
-          const folder = new Folder({ userId, ...folderData });
+          const folder = new Folder({ userId, persona, ...folderData });
           await folder.save();
           folders.push(folder);
         } catch (error) {
           if (error.code === 11000) {
             // Duplicate key error, folder already exists
-            console.log(`Folder '${folderData.name}' already exists, skipping`);
-            const existingFolder = await Folder.findOne({ userId, name: folderData.name });
+            console.log(`Folder '${folderData.name}' already exists for persona ${persona}, skipping`);
+            const existingFolder = await Folder.findOne({ userId, persona, name: folderData.name });
             if (existingFolder) {
               folders.push(existingFolder);
             }

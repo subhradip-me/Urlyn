@@ -6,6 +6,12 @@ const noteSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  persona: {
+    type: String,
+    enum: ['student', 'creator', 'professional'],
+    required: [true, 'Persona is required'],
+    index: true
+  },
   tagIds: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Tag'
@@ -87,13 +93,14 @@ const noteSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for efficient queries
-noteSchema.index({ userId: 1, isArchived: 1, updatedAt: -1 });
-noteSchema.index({ userId: 1, folderId: 1 });
-noteSchema.index({ userId: 1, tagIds: 1 });
-noteSchema.index({ userId: 1, priority: 1 });
-noteSchema.index({ userId: 1, type: 1 }); // Index for note type filtering
+// Indexes for efficient queries (updated for persona-specific data)
+noteSchema.index({ userId: 1, persona: 1, isArchived: 1, updatedAt: -1 });
+noteSchema.index({ userId: 1, persona: 1, folderId: 1 });
+noteSchema.index({ userId: 1, persona: 1, tagIds: 1 });
+noteSchema.index({ userId: 1, persona: 1, priority: 1 });
+noteSchema.index({ userId: 1, persona: 1, type: 1 }); // Index for note type filtering
 noteSchema.index({ reminderDate: 1 });
+noteSchema.index({ persona: 1, createdAt: -1 });
 
 // Virtual for content preview
 noteSchema.virtual('preview').get(function() {

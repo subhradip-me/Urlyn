@@ -1,62 +1,40 @@
 import asyncHandler from 'express-async-handler';
 import User from '../../models/common/User.js';
-import Tag from '../../models/student/Tag.js';
-import Bookmark from '../../models/student/Bookmark.js';
-// Note: Some models may not exist yet, so we'll handle those gracefully
+import Tag from '../../models/core/Tag.js';
+import CoreBookmark from '../../models/core/Bookmark.js';
+import Folder from '../../models/core/Folder.js';
+import Note from '../../models/core/Note.js';
+import BookmarkService from '../../services/core/BookmarkService.js';
+import TagService from '../../services/core/TagService.js';
+import FolderService from '../../services/core/FolderService.js';
 
-// @desc    Get dashboard stats for current user
+// @desc    Get dashboard stats for current user's active persona
 // @route   GET /api/dashboard/stats
 // @access  Private
 const getDashboardStats = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const currentPersona = req.user.currentPersona;
+  const currentPersona = req.user.currentPersona || 'student';
 
   try {
     // Basic user info
     const user = await User.findById(userId);
     
-    // Common stats across all personas
-    const totalBookmarks = await Bookmark.countDocuments({ userId });
-    const totalTags = await Tag.countDocuments({ userId });
+    // Get persona-specific stats using the new core models
+    const [bookmarkStats, tagStats, folderCount, noteCount] = await Promise.all([
+      BookmarkService.getBookmarkStats(userId, currentPersona),
+      TagService.getTagStats(userId, currentPersona),
+      Folder.countDocuments({ userId, persona: currentPersona }),
+      Note.countDocuments({ userId, persona: currentPersona })
+    ]);
     
-    // Persona-specific stats
-    let personaStats = {};
-    
-    switch (currentPersona) {
-      case 'student':
-        personaStats = {
-          totalBookmarks: await Bookmark.countDocuments({ userId, category: { $in: ['education', 'research', 'other'] } }),
-          totalNotes: 0, // Notes model doesn't exist yet
-          totalCourses: 0, // Course model doesn't exist yet
-          recentActivity: await getRecentStudentActivity(userId)
-        };
-        break;
-        
-      case 'creator':
-        personaStats = {
-          totalContent: 0, // Content model doesn't exist yet
-          totalBookmarks: await Bookmark.countDocuments({ userId, category: { $in: ['inspiration', 'tools', 'other'] } }),
-          publishedContent: 0, // Content model doesn't exist yet
-          recentActivity: await getRecentCreatorActivity(userId)
-        };
-        break;
-        
-      case 'professional':
-        personaStats = {
-          totalProjects: 0, // Project model doesn't exist yet
-          totalBookmarks: await Bookmark.countDocuments({ userId, category: { $in: ['business', 'tools', 'other'] } }),
-          activeProjects: 0, // Project model doesn't exist yet
-          recentActivity: await getRecentProfessionalActivity(userId)
-        };
-        break;
-        
-      default:
-        personaStats = {
-          totalBookmarks,
-          totalTags,
-          recentActivity: []
-        };
-    }
+    // Common stats for current persona
+    const personaStats = {
+      bookmarks: bookmarkStats,
+      tags: tagStats,
+      folders: folderCount,
+      notes: noteCount,
+      recentActivity: await getRecentActivity(userId, currentPersona)
+    };
 
     res.json({
       success: true,
@@ -72,9 +50,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         },
         stats: {
           totalPersonas: user.personas.length,
-          currentSession: user.currentPersona ? 1 : 0,
-          totalBookmarks,
-          totalTags,
+          currentPersona,
           ...personaStats
         }
       }
@@ -87,64 +63,58 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   }
 });
 
-// Helper function to get recent student activity
-const getRecentStudentActivity = async (userId) => {
+// Helper function to get recent activity for a specific persona
+const getRecentActivity = async (userId, persona) => {
   try {
-    const recentBookmarks = await Bookmark.find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('title url createdAt');
-    
-    return recentBookmarks.map(bookmark => ({
-      type: 'bookmark',
-      title: bookmark.title || 'Untitled Bookmark',
-      date: bookmark.createdAt,
-      data: { url: bookmark.url }
-    }));
-  } catch (error) {
-    console.error('Error getting recent student activity:', error);
-    return [];
-  }
-};
+    const [recentBookmarks, recentNotes, recentTags] = await Promise.all([
+      CoreBookmark.find({ userId, persona })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('title url createdAt')
+        .lean(),
+      Note.find({ userId, persona })
+        .sort({ updatedAt: -1 })
+        .limit(5)
+        .select('title content createdAt updatedAt')
+        .lean(),
+      Tag.find({ userId, persona })
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .select('name color createdAt')
+        .lean()
+    ]);
 
-// Helper function to get recent creator activity
-const getRecentCreatorActivity = async (userId) => {
-  try {
-    // For now, return bookmarks as activity
-    const recentBookmarks = await Bookmark.find({ userId, category: { $in: ['inspiration', 'tools', 'other'] } })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('title url createdAt');
-    
-    return recentBookmarks.map(bookmark => ({
-      type: 'bookmark',
-      title: bookmark.title || 'Untitled Bookmark',
-      date: bookmark.createdAt,
-      data: { url: bookmark.url }
-    }));
-  } catch (error) {
-    console.error('Error getting recent creator activity:', error);
-    return [];
-  }
-};
+    const activities = [
+      ...recentBookmarks.map(CoreBookmark => ({
+        type: 'CoreBookmark',
+        action: 'created',
+        item: CoreBookmark.title,
+        url: CoreBookmark.url,
+        timestamp: CoreBookmark.createdAt
+      })),
+      ...recentNotes.map(note => ({
+        type: 'note',
+        action: note.createdAt.getTime() === note.updatedAt.getTime() ? 'created' : 'updated',
+        item: note.title,
+        preview: note.content ? note.content.substring(0, 100) + '...' : '',
+        timestamp: note.updatedAt
+      })),
+      ...recentTags.map(tag => ({
+        type: 'tag',
+        action: 'created',
+        item: tag.name,
+        color: tag.color,
+        timestamp: tag.createdAt
+      }))
+    ];
 
-// Helper function to get recent professional activity
-const getRecentProfessionalActivity = async (userId) => {
-  try {
-    // For now, return bookmarks as activity
-    const recentBookmarks = await Bookmark.find({ userId, category: { $in: ['business', 'tools', 'other'] } })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('title url createdAt');
-    
-    return recentBookmarks.map(bookmark => ({
-      type: 'bookmark',
-      title: bookmark.title || 'Untitled Bookmark',
-      date: bookmark.createdAt,
-      data: { url: bookmark.url }
-    }));
+    // Sort by timestamp and return latest 10
+    return activities
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 10);
+
   } catch (error) {
-    console.error('Error getting recent professional activity:', error);
+    console.error('Error getting recent activity:', error);
     return [];
   }
 };
@@ -153,15 +123,15 @@ const getRecentProfessionalActivity = async (userId) => {
 // @route   GET /api/dashboard/quick-actions
 // @access  Private
 const getQuickActions = asyncHandler(async (req, res) => {
-  const currentPersona = req.user.currentPersona;
+  const currentPersona = req.user.currentPersona || 'student';
   
   const quickActions = {
     student: [
       { 
-        id: 'add-bookmark', 
-        title: 'Add Bookmark', 
+        id: 'add-CoreBookmark', 
+        title: 'Add CoreBookmark', 
         description: 'Save a new learning resource',
-        icon: 'bookmark',
+        icon: 'CoreBookmark',
         path: '/student/bookmarks',
         color: 'blue'
       },
@@ -195,7 +165,7 @@ const getQuickActions = asyncHandler(async (req, res) => {
         id: 'add-inspiration', 
         title: 'Add Inspiration', 
         description: 'Save inspiring content',
-        icon: 'bookmark',
+        icon: 'CoreBookmark',
         path: '/creator/bookmarks',
         color: 'blue'
       },
@@ -221,7 +191,7 @@ const getQuickActions = asyncHandler(async (req, res) => {
         id: 'add-resource', 
         title: 'Add Resource', 
         description: 'Save professional resources',
-        icon: 'bookmark',
+        icon: 'CoreBookmark',
         path: '/work/bookmarks',
         color: 'blue'
       },

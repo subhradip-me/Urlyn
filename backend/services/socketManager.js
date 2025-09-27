@@ -46,8 +46,8 @@ class SocketManager {
         console.log('Socket auth: Token starts with:', token.substring(0, 10) + '...');
 
         // Handle development mode special tokens
-        if (process.env.NODE_ENV === 'development' && token === 'dev-token-fallback') {
-          console.log('🔧 Development mode: Using fallback token');
+        if (process.env.NODE_ENV === 'development' && (token === 'dev-token-fallback' || process.env.BYPASS_AUTH === 'true')) {
+          console.log('🔧 Development mode: Using fallback token or auth bypass');
           const mockUser = {
             _id: '68d0e521d89923fb4cf80d54',
             firstName: 'Test',
@@ -87,6 +87,22 @@ class SocketManager {
           } catch (decodeError) {
             console.log('🔧 Development token decode failed, trying normal JWT verification');
           }
+        }
+
+        // If we're in development mode and have BYPASS_AUTH, allow any token
+        if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
+          console.log('🔧 Development mode: Auth bypass enabled, allowing connection');
+          const mockUser = {
+            _id: '68d0e521d89923fb4cf80d54',
+            firstName: 'Test',
+            lastName: 'User',
+            email: 'test@example.com',
+            avatar: null,
+            isOnline: true
+          };
+          socket.userId = mockUser._id.toString();
+          socket.user = mockUser;
+          return next();
         }
 
         // Try normal JWT verification

@@ -1,15 +1,16 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const plannerEntrySchema = new mongoose.Schema({
-  profileId: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    refPath: 'profileType'
+    ref: 'User',
+    required: true
   },
-  profileType: {
+  persona: {
     type: String,
-    required: true,
-    enum: ['StudentProfile', 'CreatorProfile', 'WorkingProfile']
+    enum: ['student', 'creator', 'professional'],
+    required: [true, 'Persona is required'],
+    index: true
   },
   taskId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -91,12 +92,13 @@ const plannerEntrySchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for efficient queries
-plannerEntrySchema.index({ profileId: 1, scheduledFor: 1 });
-plannerEntrySchema.index({ profileId: 1, type: 1 });
+// Indexes for efficient queries (updated for persona-specific data)
+plannerEntrySchema.index({ userId: 1, persona: 1, scheduledFor: 1 });
+plannerEntrySchema.index({ userId: 1, persona: 1, type: 1 });
 plannerEntrySchema.index({ scheduledFor: 1, status: 1 });
 plannerEntrySchema.index({ taskId: 1 });
 plannerEntrySchema.index({ noteId: 1 });
+plannerEntrySchema.index({ persona: 1, createdAt: -1 });
 
 // Virtual for end time
 plannerEntrySchema.virtual('endTime').get(function() {
@@ -104,4 +106,5 @@ plannerEntrySchema.virtual('endTime').get(function() {
   return new Date(this.scheduledFor.getTime() + (this.duration * 60 * 1000));
 });
 
-module.exports = mongoose.model('PlannerEntry', plannerEntrySchema);
+const PlannerEntry = mongoose.models.PlannerEntry || mongoose.model('PlannerEntry', plannerEntrySchema);
+export default PlannerEntry;
