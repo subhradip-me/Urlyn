@@ -58,7 +58,7 @@ export const ChatProvider = ({ children }) => {
 
     // Debug token format
     console.log('Chat: Token available, length:', token.length);
-    console.log('Chat: Token starts with:', token.substring(0, 20) + '...');
+    console.log('Chat: Token type:', typeof token);
     console.log('Chat: Initializing socket connection for user:', user.email);
 
     const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5001', {
@@ -67,7 +67,8 @@ export const ChatProvider = ({ children }) => {
       },
       transports: ['websocket', 'polling'],
       autoConnect: true,
-      forceNew: true
+      forceNew: true,
+      timeout: 10000
     });
 
     newSocket.on('connect', () => {
@@ -77,16 +78,16 @@ export const ChatProvider = ({ children }) => {
       reconnectAttempts.current = 0;
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('Chat: Disconnected from chat server');
+    newSocket.on('disconnect', (reason) => {
+      console.log('Chat: Disconnected from chat server. Reason:', reason);
       setIsConnected(false);
       
-      // Attempt reconnection
-      if (reconnectAttempts.current < maxReconnectAttempts) {
+      // Only attempt reconnection for non-authentication issues
+      if (reason !== 'io server disconnect' && reconnectAttempts.current < maxReconnectAttempts) {
         reconnectAttempts.current++;
         console.log(`Chat: Reconnection attempt ${reconnectAttempts.current}`);
         setTimeout(() => {
-          if (user && token) {
+          if (user && token && !reason.includes('Authentication')) {
             newSocket.connect();
           }
         }, 1000 * reconnectAttempts.current);
@@ -97,7 +98,12 @@ export const ChatProvider = ({ children }) => {
       console.error('Chat: Socket connection error:', error.message);
       setIsConnected(false);
       
-      // If authentication error, don't retry immediately
+      // If authentication error, provide more context
+      if (error.message.includes('Authentication') || error.message.includes('Invalid token')) {
+        console.error('Chat: Authentication failed - check token validity');
+        // Don't attempt reconnection for auth errors
+        return;
+      }
       if (error.message.includes('Authentication') || error.message.includes('Invalid token')) {
         console.error('Chat: Authentication failed - check token validity');
         return;

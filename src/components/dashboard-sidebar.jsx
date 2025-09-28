@@ -193,7 +193,7 @@ const personaConfigs = {
 };
 
 export function DashboardSidebar({ className, persona = "student", onPersonaChange }) {
-  const { user, logout, addPersona, switchPersona } = useAuth();
+  const { user, token, logout, addPersona, switchPersona, forceAuthRefresh } = useAuth();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeItem, setActiveItem] = useState("Home");
@@ -350,9 +350,22 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
 
   const handlePersonaChange = async (newPersona) => {
     try {
+      console.log('🎭 UI: Starting persona change to:', newPersona);
+      console.log('🎭 UI: Current user state:', { user, token });
+      
+      // Check if token exists before attempting switch
+      if (!token) {
+        console.error('🚨 UI: No token available, trying to refresh auth...');
+        if (forceAuthRefresh) {
+          await forceAuthRefresh();
+        }
+      }
+      
       const result = await switchPersona(newPersona);
+      console.log('🎭 UI: Persona switch result:', result);
       
       if (result.success) {
+        console.log('✅ UI: Persona switch successful');
         let defaultRoute;
         switch (newPersona) {
           case 'professional':
@@ -371,15 +384,16 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
             setActiveItem('Home');
         }
         
+        console.log('🔄 UI: Navigating to:', defaultRoute);
         router.push(defaultRoute);
         setShowPersonaDropdown(false);
         setExpandedItems({});
       } else {
-        console.error('Failed to switch persona:', result.error);
+        console.error('❌ UI: Failed to switch persona:', result.error);
         alert('Failed to switch persona: ' + result.error);
       }
     } catch (error) {
-      console.error('Error switching persona:', error);
+      console.error('🚨 UI: Error switching persona:', error);
       alert('Error switching persona: ' + error.message);
     }
   };

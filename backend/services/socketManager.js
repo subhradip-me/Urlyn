@@ -38,60 +38,49 @@ class SocketManager {
         }
 
         // Handle development mode special tokens
-        if (process.env.NODE_ENV === 'development' && (token === 'dev-token-fallback' || process.env.BYPASS_AUTH === 'true')) {
-          const mockUser = {
-            _id: '68d0e521d89923fb4cf80d54',
-            firstName: 'Test',
-            lastName: 'User',
-            email: 'test@example.com',
-            avatar: null,
-            isOnline: true
-          };
-          socket.userId = mockUser._id.toString();
-          socket.user = mockUser;
-          return next();
-        }
-
-        // For development JWT tokens, check if it's our mock format
-        if (process.env.NODE_ENV === 'development' && token.includes('.')) {
-          try {
-            const parts = token.split('.');
-            if (parts.length === 3) {
-              // Decode the payload from our development token
-              const payload = JSON.parse(atob(parts[1]));
-              
-              if (payload.id && payload.email) {
-                const mockUser = {
-                  _id: payload.id,
-                  firstName: 'Test',
-                  lastName: 'User',
-                  email: payload.email,
-                  avatar: null,
-                  isOnline: true
-                };
-                socket.userId = payload.id;
-                socket.user = mockUser;
-                return next();
-              }
-            }
-          } catch (decodeError) {
-            // Development token decode failed, trying normal JWT verification
+        if (process.env.NODE_ENV === 'development') {
+          if (token === 'dev-token-fallback') {
+            const mockUser = {
+              _id: '68d0e521d89923fb4cf80d54',
+              firstName: 'Test',
+              lastName: 'User',
+              email: 'test@example.com',
+              avatar: null,
+              isOnline: true
+            };
+            socket.userId = mockUser._id.toString();
+            socket.user = mockUser;
+            return next();
           }
-        }
 
-        // If we're in development mode and have BYPASS_AUTH, allow any token
-        if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
-          const mockUser = {
-            _id: '68d0e521d89923fb4cf80d54',
-            firstName: 'Test',
-            lastName: 'User',
-            email: 'test@example.com',
-            avatar: null,
-            isOnline: true
-          };
-          socket.userId = mockUser._id.toString();
-          socket.user = mockUser;
-          return next();
+          if (token.startsWith('dev-token-')) {
+            const userId = token.replace('dev-token-', '');
+            const mockUser = {
+              _id: userId,
+              firstName: 'Test',
+              lastName: 'User',
+              email: 'test@example.com',
+              avatar: null,
+              isOnline: true
+            };
+            socket.userId = userId;
+            socket.user = mockUser;
+            return next();
+          }
+
+          if (process.env.BYPASS_AUTH === 'true') {
+            const mockUser = {
+              _id: '68d0e521d89923fb4cf80d54',
+              firstName: 'Test',
+              lastName: 'User',
+              email: 'test@example.com',
+              avatar: null,
+              isOnline: true
+            };
+            socket.userId = mockUser._id.toString();
+            socket.user = mockUser;
+            return next();
+          }
         }
 
         // Try normal JWT verification

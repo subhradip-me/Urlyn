@@ -6,21 +6,9 @@ import apiClient from '@/lib/api-client';
 // Helper function to generate JWT token for development
 const generateDevToken = async (user) => {
   try {
-    // Create JWT payload
-    const payload = {
-      id: user._id,
-      email: user.email,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-    };
-    
-    // For client-side, we'll create a mock JWT structure
-    // In production, this would be generated server-side
-    const header = btoa(JSON.stringify({ typ: 'JWT', alg: 'HS256' }));
-    const payloadEncoded = btoa(JSON.stringify(payload));
-    const signature = btoa('dev-signature'); // Mock signature for development
-    
-    return `${header}.${payloadEncoded}.${signature}`;
+    // In development, we'll use a simple token format that the backend can recognize
+    // This is a development-only approach - in production, proper JWT is used
+    return `dev-token-${user._id}`;
   } catch (error) {
     console.error('Error generating dev token:', error);
     return 'dev-token-fallback';
@@ -281,19 +269,75 @@ export function AuthProvider({ children }) {
 
   const switchPersona = async (persona) => {
     try {
-      const response = await apiClient.switchPersona(persona);
+      console.log(`Attempting to switch to ${persona} persona`);
       
-      dispatch({
-        type: AUTH_ACTIONS.SWITCH_PERSONA,
-        payload: {
-          currentPersona: response.currentPersona,
-          currentProfile: response.currentProfile,
-        },
-      });
+      // Validate persona
+      const validPersonas = ['student', 'professional', 'creator', 'entrepreneur', 'researcher'];
+      if (!validPersonas.includes(persona)) {
+        throw new Error(`Invalid persona: ${persona}`);
+      }
+
+      // Check if token exists
+      const token = apiClient.getToken();
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      console.log('Token available for persona switch, attempting API call...');
       
-      return { success: true, message: response.message };
+      // Attempt the switch with retry logic
+      let lastError;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const response = await apiClient.switchPersona(persona);
+          
+          console.log(`Successfully switched to ${persona} persona`);
+          
+          dispatch({
+            type: AUTH_ACTIONS.SWITCH_PERSONA,
+            payload: {
+              currentPersona: response.currentPersona,
+              currentProfile: response.currentProfile,
+            },
+          });
+          
+          return { success: true, message: response.message };
+          
+        } catch (error) {
+          lastError = error;
+          console.error(`Persona switch attempt ${attempt} failed:`, error.message);
+          
+          // Handle authentication errors
+          if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('token')) {
+            if (process.env.NODE_ENV === 'development' && attempt < 3) {
+              console.log('Refreshing development token...');
+              
+              // Generate a new development token
+              const newToken = `dev-token-${state.user._id}`;
+              apiClient.setToken(newToken);
+              localStorage.setItem('authToken', newToken);
+              
+              // Wait a bit before retrying
+              await new Promise(resolve => setTimeout(resolve, 500));
+              continue;
+            }
+            
+            throw new Error('Authentication failed. Please refresh the page.');
+          }
+          
+          // For other errors, wait before retrying
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      // If all retries failed
+      throw lastError || new Error(`Failed to switch to ${persona} persona`);
+      
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to switch persona';
+      console.error('Persona switch failed:', error);
+      const errorMessage = error.message || 'Failed to switch persona';
       return { success: false, error: errorMessage };
     }
   };
@@ -318,6 +362,69 @@ export function AuthProvider({ children }) {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
   };
 
+  const refreshToken = async () => {
+    if (process.env.NODE_ENV === 'development' && state.user) {
+      try {
+        const newToken = await generateDevToken(state.user);
+        apiClient.setToken(newToken);
+        localStorage.setItem('authToken', newToken);
+        
+        // Also update the state
+        dispatch({
+          type: AUTH_ACTIONS.UPDATE_USER,
+          payload: { token: newToken },
+        });
+        
+        console.log('🔄 Development token refreshed');
+        return { success: true, token: newToken };
+      } catch (error) {
+        console.error('Failed to refresh development token:', error);
+        return { success: false, error: 'Failed to refresh token' };
+      }
+    }
+    return { success: false, error: 'Token refresh not available' };
+  };
+
+  const forceAuthRefresh = async () => {
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        console.log('🔄 Forcing authentication refresh...');
+        
+        // Re-initialize with fresh token
+        const mockUser = {
+          _id: '68d0e521d89923fb4cf80d54',
+          firstName: 'Test',
+          lastName: 'User',
+          email: 'test@example.com',
+          personas: ['student', 'professional', 'creator', 'entrepreneur', 'researcher'],
+          currentPersona: 'student',
+          preferences: {
+            notifications: { email: true, push: true },
+            privacy: { profileVisibility: 'public' },
+            theme: 'system'
+          }
+        };
+        
+        const mockToken = await generateDevToken(mockUser);
+        
+        localStorage.setItem('authToken', mockToken);
+        apiClient.setToken(mockToken);
+        
+        dispatch({
+          type: AUTH_ACTIONS.LOGIN_SUCCESS,
+          payload: { user: mockUser, token: mockToken },
+        });
+        
+        console.log('✅ Authentication refreshed successfully');
+        return { success: true, user: mockUser, token: mockToken };
+      } catch (error) {
+        console.error('Failed to refresh authentication:', error);
+        return { success: false, error: error.message };
+      }
+    }
+    return { success: false, error: 'Auth refresh only available in development' };
+  };
+
   const value = {
     ...state,
     login,
@@ -327,6 +434,8 @@ export function AuthProvider({ children }) {
     switchPersona,
     updateProfile,
     clearError,
+    refreshToken,
+    forceAuthRefresh,
   };
 
   return (

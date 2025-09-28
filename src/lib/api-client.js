@@ -47,6 +47,17 @@ class ApiClient {
           status: error.response?.status
         });
 
+        // Handle authentication errors
+        if (error.response?.status === 401) {
+          // Clear token on authentication failure
+          this.setToken(null);
+          
+          // In development mode, try to refresh with a new dev token
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Authentication failed in development - token may need refresh');
+          }
+        }
+
         if (error.code === 'ECONNREFUSED' || error.message.includes('ERR_CONNECTION_REFUSED')) {
           throw new Error('Unable to connect to server. Please check if the backend is running on port 5001.');
         }

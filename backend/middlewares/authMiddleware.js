@@ -4,6 +4,7 @@ import User from '../models/common/User.js';
 const protect = async (req, res, next) => {
   // Development bypass for testing
   if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
+    console.log('🔓 Auth bypass enabled - using mock user');
     // Find a real user from the database
     let user = await User.findOne();
     
@@ -26,7 +27,7 @@ const protect = async (req, res, next) => {
         lastName: 'User',
         email: 'test@example.com',
         persona: 'student',
-        personas: ['student'],
+        personas: ['student', 'professional', 'creator', 'entrepreneur', 'researcher'],
         currentPersona: 'student'
       };
     }
@@ -40,23 +41,67 @@ const protect = async (req, res, next) => {
     try {
       // Get token from header
       token = req.headers.authorization.split(' ')[1];
+      console.log('🔍 Received token:', token.substring(0, 15) + '...');
+
+      // Handle development tokens
+      if (process.env.NODE_ENV === 'development' && token.startsWith('dev-token-')) {
+        console.log('🧪 Processing development token');
+        const userId = token.replace('dev-token-', '');
+        
+        // Create or find a mock user
+        let user = await User.findById(userId);
+        
+        if (!user) {
+          // Create mock user for development
+          console.log('👤 Creating mock user for development');
+          req.user = {
+            _id: userId,
+            firstName: 'Test',
+            lastName: 'User',
+            email: 'test@example.com',
+            personas: ['student', 'professional', 'creator', 'entrepreneur', 'researcher'],
+            currentPersona: 'student'
+          };
+        } else {
+          req.user = user;
+        }
+        
+        return next();
+      }
+
+      // Handle fallback development token
+      if (process.env.NODE_ENV === 'development' && token === 'dev-token-fallback') {
+        console.log('🔄 Using fallback development token');
+        req.user = {
+          _id: '68d0e521d89923fb4cf80d54',
+          firstName: 'Test',
+          lastName: 'User',
+          email: 'test@example.com',
+          personas: ['student', 'professional', 'creator', 'entrepreneur', 'researcher'],
+          currentPersona: 'student'
+        };
+        return next();
+      }
 
       // Verify token
+      console.log('🔐 Verifying JWT token');
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Get user from token
       req.user = await User.findById(decoded.id);
       
       if (!req.user) {
+        console.log('❌ User not found for token');
         return res.status(401).json({ 
           success: false, 
           message: 'Not authorized, user not found' 
         });
       }
 
+      console.log('✅ User authenticated:', req.user.email);
       next();
     } catch (error) {
-      console.error('Token verification failed:', error);
+      console.error('🚨 Token verification failed:', error.message);
       return res.status(401).json({ 
         success: false, 
         message: 'Not authorized, token failed' 
@@ -65,6 +110,7 @@ const protect = async (req, res, next) => {
   }
 
   if (!token) {
+    console.log('❌ No token provided');
     return res.status(401).json({ 
       success: false, 
       message: 'Not authorized, no token' 

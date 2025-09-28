@@ -141,20 +141,31 @@ const addPersona = asyncHandler(async (req, res) => {
 // @access  Private
 const switchPersona = asyncHandler(async (req, res) => {
   const { persona } = req.body;
+  
+  console.log('🎭 Persona switch request:', { persona, userId: req.user?._id });
 
   if (!persona || !['student', 'creator', 'professional', 'entrepreneur', 'researcher'].includes(persona)) {
+    console.log('❌ Invalid persona type:', persona);
     res.status(400);
     throw new Error('Invalid persona type');
   }
 
   const user = await User.findById(req.user._id);
+  
+  if (!user) {
+    console.log('❌ User not found:', req.user._id);
+    res.status(404);
+    throw new Error('User not found');
+  }
 
   if (!user.personas.includes(persona)) {
+    console.log('❌ Persona not available for user:', { persona, userPersonas: user.personas });
     res.status(400);
     throw new Error('Persona not available. Please add this persona first.');
   }
 
   await user.switchPersona(persona);
+  console.log('✅ Persona switched successfully:', { from: user.currentPersona, to: persona });
 
   res.json({
     message: `Switched to ${persona} persona`,
