@@ -4,6 +4,12 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LoadingProvider } from "@/contexts/LoadingContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 
+// Import dev utils for debugging in development
+if (process.env.NODE_ENV === "development") {
+  // Dynamic import to avoid including in production
+  import("@/lib/dev-utils");
+}
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

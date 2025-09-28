@@ -226,21 +226,34 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
   // Fetch user folders when persona is student
   useEffect(() => {
     const initializePersonaData = async () => {
-      if (persona === 'student' && user) {
+      console.log('🎭 Initializing persona data for:', persona, 'user:', user?.currentPersona);
+      
+      // Wait for user to be loaded
+      if (!user) {
+        console.log('⏳ User not loaded yet, skipping persona initialization');
+        return;
+      }
+      
+      if (persona === 'student') {
         // Ensure the backend user is switched to student persona
         if (user.currentPersona !== 'student') {
           try {
+            console.log('🔄 Switching to student persona...');
             const result = await switchPersona('student');
             if (result.success) {
-              // Now fetch folders after switching persona
-              fetchUserFolders();
+              console.log('✅ Successfully switched to student persona');
+              // Small delay to ensure backend state is updated
+              setTimeout(() => {
+                fetchUserFolders();
+              }, 100);
             } else {
-              console.error('Failed to switch to student persona:', result.error);
+              console.error('❌ Failed to switch to student persona:', result.error);
             }
           } catch (error) {
-            console.error('Error switching to student persona:', error);
+            console.error('❌ Error switching to student persona:', error);
           }
         } else {
+          console.log('✅ Already on student persona, fetching folders');
           // Already on student persona, just fetch folders
           fetchUserFolders();
         }
@@ -252,7 +265,9 @@ export function DashboardSidebar({ className, persona = "student", onPersonaChan
 
   const fetchUserFolders = async () => {
     try {
+      console.log('📁 Fetching user folders for persona:', persona);
       const response = await apiClient.getStudentFolders();
+      console.log('📁 Folders response:', response);
       const folders = response.data?.folders || [];
       
       if (!Array.isArray(folders)) {

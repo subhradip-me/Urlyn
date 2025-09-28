@@ -25,6 +25,15 @@ class ApiClient {
         const token = this.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          
+          // Debug logging for development
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔍 API Request:', {
+              url: config.url,
+              method: config.method,
+              token: token.substring(0, 15) + '...'
+            });
+          }
         }
         return config;
       },

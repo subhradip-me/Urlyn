@@ -145,6 +145,12 @@ export function AuthProvider({ children }) {
         localStorage.setItem('authToken', mockToken);
         apiClient.setToken(mockToken);
         
+        console.log('🔧 Development auth initialized with:', { 
+          userId: mockUser._id, 
+          currentPersona: mockUser.currentPersona,
+          token: mockToken.substring(0, 15) + '...'
+        });
+        
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
           payload: { user: mockUser, token: mockToken },
@@ -291,7 +297,7 @@ export function AuthProvider({ children }) {
         try {
           const response = await apiClient.switchPersona(persona);
           
-          console.log(`Successfully switched to ${persona} persona`);
+          console.log(`✅ Successfully switched to ${persona} persona`, response);
           
           dispatch({
             type: AUTH_ACTIONS.SWITCH_PERSONA,

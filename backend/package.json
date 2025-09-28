@@ -6,18 +6,26 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:modular": "node server-modular.js",
+    "start:prod": "NODE_ENV=production node server-modular.js",
     "dev": "nodemon server.js",
+    "dev:modular": "nodemon server-modular.js",
     "prod": "NODE_ENV=production node server.js",
     "build": "echo 'No build step required for Node.js backend'",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:auth": "jest --testPathPattern=auth",
+    "test:personas": "jest --testPathPattern=personas",
+    "test:integration": "jest --testPathPattern=integration",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "rm -rf node_modules package-lock.json && npm install",
-    "security-audit": "npm audit --audit-level moderate"
+    "security-audit": "npm audit --audit-level moderate",
+    "health": "curl http://localhost:5001/api/health",
+    "modules:status": "curl http://localhost:5001/api/health/modules"
   },
   "keywords": [
     "saas",
