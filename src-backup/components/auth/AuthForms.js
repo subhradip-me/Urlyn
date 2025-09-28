@@ -106,12 +106,10 @@ export function LoginForm() {
 
 export function RegisterForm() {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    persona: 'student'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState('');
